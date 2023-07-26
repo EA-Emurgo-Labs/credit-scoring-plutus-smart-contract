@@ -46,10 +46,21 @@ PlutusTx.makeIsDataIndexed ''OperatorParams [('OperatorParams,0)]
 
 data RedeemerParams = RedeemerParams
   {
-    age     :: Integer,
-    wAge    :: Integer,
-    salary  :: Integer,
-    wSalary :: Integer
+    {-
+      For example:
+      + Factor 0: age (value: 30 (years old), OR 35 (years old), ...)
+      + Factor 1: salary (value: 1000$, OR 1500$, OR 2000$, ...)
+      ...
+    -} 
+    factors :: [Integer],
+
+    {-
+      For example:
+      + Weight 0: weight of age (value: 10, OR 20, ...)
+      + Weight 1: weight of salary (value: 5, OR 7, ...)
+      ...
+    -}     
+    weights :: [Integer]
   }
 
 PlutusTx.makeLift ''RedeemerParams
@@ -60,7 +71,7 @@ mkNFTPolicy :: OperatorParams -> RedeemerParams -> PlutusV2.ScriptContext -> Boo
 mkNFTPolicy oParams rParams scriptContext =
     traceIfFalse "[Plutus Error]: you're not the operator to mint the Lending NFT" ownOperatorTokenInInput &&
     traceIfFalse "[Plutus Error]: minted amount must be one" checkMintedAmount &&
-    traceIfFalse "[Plutus Error]: your score is not enough to receive the Scoring NFT" checkMinPointToMintNFT
+    traceIfFalse "[Plutus Error]: your score is not enough to receive the Scoring NFT" checkMinScoreToMintNFT
   where
     info :: PlutusV2.TxInfo
     info = PlutusV2.scriptContextTxInfo scriptContext
@@ -84,10 +95,16 @@ mkNFTPolicy oParams rParams scriptContext =
       [(_, _, amount)] -> amount == 1
       _                -> False
 
-    checkMinPointToMintNFT :: Bool
-    checkMinPointToMintNFT = totalPoint >= (minScoreToMintNFT oParams)
-      where
-        totalPoint = (age rParams) * (wAge rParams) + (salary rParams) * (wSalary rParams)
+    checkMinScoreToMintNFT :: Bool
+    checkMinScoreToMintNFT =
+      getTotalScore (factors rParams) (weights rParams) >= minScoreToMintNFT oParams
+
+    getTotalScore :: [Integer] -> [Integer] -> Integer
+    getTotalScore [] []         = 0
+    getTotalScore _  []         = 0
+    getTotalScore [] _          = 0
+    getTotalScore [x] [y]       = x * y
+    getTotalScore (x:xs) (y:ys) = x * y + getTotalScore xs ys
 
 policy :: OperatorParams -> Scripts.MintingPolicy
 policy params = PlutusV2.mkMintingPolicyScript $
