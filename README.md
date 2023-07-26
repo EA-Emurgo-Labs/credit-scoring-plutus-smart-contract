@@ -1,2 +1,3 @@
 # credit-scoring
-Credit Scoring project
+
+cabal run credit-scoring c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 200
