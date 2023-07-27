@@ -45,14 +45,14 @@ import           Prelude                              (FilePath, IO, Show (..),
 
 data LendingParams = LendingParams
   {
-
     {-
       Each lending package includes:
+      + packageNumber :: Integer,
       + fromPoint     :: Integer,
       + toPoint       :: Integer,
       + lendingAmount :: Integer
     -}
-    lendingPackages :: [(Integer, Integer, Integer)]
+    lendingPackages :: [(Integer, Integer, Integer, Integer)]
   }
   deriving(Show)
 

@@ -29,26 +29,12 @@ import           LendingContract
 
 main :: IO ()
 main = do
-  [ fromPointPackage0,
-    toPointPackage0,
-    lendingAmountPackage0,
-    fromPointPackage1,
-    toPointPackage1,
-    lendingAmountPackage1 ] <- getArgs
+  args <- getArgs
+
+  let lendingPackages' = parseArgs args
 
   let lendingParams = LendingParams {
-    lendingPackages = [
-      (
-        Haskell.read fromPointPackage0     :: Integer,
-        Haskell.read toPointPackage0       :: Integer,
-        Haskell.read lendingAmountPackage0 :: Integer
-      ),
-      (
-        Haskell.read fromPointPackage1     :: Integer,
-        Haskell.read toPointPackage1       :: Integer,
-        Haskell.read lendingAmountPackage1 :: Integer
-      )      
-    ]
+    lendingPackages = lendingPackages'
   }
 
   let contract = "built-contracts/lending.json"
@@ -57,3 +43,11 @@ main = do
   case result of
     Left err -> Haskell.print $ displayError err
     Right () -> Haskell.putStrLn $ "Built lending contract successfully at: " ++ contract
+
+parseArgs :: [Haskell.String] -> [(Integer, Integer, Integer, Integer)]
+parseArgs [] = []
+parseArgs (packageNumber:fromPoint:toPoint:lendingAmount:xs) =
+  [( Haskell.read packageNumber :: Integer,
+     Haskell.read fromPoint :: Integer,
+     Haskell.read toPoint :: Integer,
+     Haskell.read lendingAmount :: Integer )] ++ parseArgs xs
