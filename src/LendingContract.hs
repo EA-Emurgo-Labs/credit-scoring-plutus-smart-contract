@@ -43,23 +43,21 @@ import           PlutusTx.Prelude                     as P hiding
 import           Prelude                              (FilePath, IO, Show (..),
                                                        print, putStrLn, (.))
 
-data LendingParams = 
-  PackageOne
+data LendingParams = LendingParams
   {
-    fromPoint     :: Integer,
-    toPoint       :: Integer,
-    lendingAmount :: Integer
-  } |
-  PackageTwo 
-  {
-    fromPoint     :: Integer,
-    toPoint       :: Integer,
-    lendingAmount :: Integer
+
+    {-
+      Each lending package includes:
+      + fromPoint     :: Integer,
+      + toPoint       :: Integer,
+      + lendingAmount :: Integer
+    -}
+    lendingPackages :: [(Integer, Integer, Integer)]
   }
   deriving(Show)
 
 PlutusTx.makeLift ''LendingParams
-PlutusTx.makeIsDataIndexed ''LendingParams [('PackageOne,0),('PackageTwo,1)]
+PlutusTx.makeIsDataIndexed ''LendingParams [('LendingParams,0)]
 
 data DatumParams = DatumParams 
   {
