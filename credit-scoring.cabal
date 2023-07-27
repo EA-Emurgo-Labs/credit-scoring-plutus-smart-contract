@@ -9,6 +9,7 @@ License:            Apache-2.0
 library
   hs-source-dirs:      src
   exposed-modules:     CreditScoringContract
+                     , LendingContract
 
   build-depends:       aeson
                      , base                     ^>=4.14.1.0
