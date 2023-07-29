@@ -69,7 +69,7 @@ PlutusTx.makeIsDataIndexed ''RedeemerParams [('RedeemerParams,0)]
 {-# INLINABLE mkNFTPolicy #-}
 mkNFTPolicy :: OperatorParams -> RedeemerParams -> PlutusV2.ScriptContext -> Bool
 mkNFTPolicy oParams rParams scriptContext =
-    traceIfFalse "[Plutus Error]: you're not the operator to mint the Lending NFT" ownOperatorTokenInInput &&
+    traceIfFalse "[Plutus Error]: you're not the operator to mint the Scoring NFT" ownOperatorTokenInInput &&
     traceIfFalse "[Plutus Error]: minted amount must be one" checkMintedAmount &&
     traceIfFalse "[Plutus Error]: your score is not enough to receive the Scoring NFT" checkMinScoreToMintNFT
   where

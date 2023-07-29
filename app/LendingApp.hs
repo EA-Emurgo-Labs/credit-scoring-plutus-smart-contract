@@ -31,10 +31,10 @@ main :: IO ()
 main = do
   args <- getArgs
 
-  let lendingPackages' = parseArgs args
+  let lendingPackagesInfo' = parseArgs args
 
   let lendingParams = LendingParams {
-    lendingPackages = lendingPackages'
+    lendingPackagesInfo = lendingPackagesInfo'
   }
 
   let contract = "built-contracts/lending.json"
@@ -44,10 +44,17 @@ main = do
     Left err -> Haskell.print $ displayError err
     Right () -> Haskell.putStrLn $ "Built lending contract successfully at: " ++ contract
 
+{-
+  Each lending package includes:
+  + packageNumber :: Integer,
+  + fromPoint     :: Integer,
+  + toPoint       :: Integer,
+  + lendingAmount :: Integer
+-}
 parseArgs :: [Haskell.String] -> [(Integer, Integer, Integer, Integer)]
 parseArgs [] = []
 parseArgs (packageNumber:fromPoint:toPoint:lendingAmount:xs) =
   [( Haskell.read packageNumber :: Integer,
-     Haskell.read fromPoint :: Integer,
-     Haskell.read toPoint :: Integer,
+     Haskell.read fromPoint     :: Integer,
+     Haskell.read toPoint       :: Integer,
      Haskell.read lendingAmount :: Integer )] ++ parseArgs xs

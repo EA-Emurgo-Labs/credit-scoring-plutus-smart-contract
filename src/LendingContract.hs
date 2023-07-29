@@ -52,32 +52,98 @@ data LendingParams = LendingParams
       + toPoint       :: Integer,
       + lendingAmount :: Integer
     -}
-    lendingPackages :: [(Integer, Integer, Integer, Integer)]
+    lendingPackagesInfo :: [(Integer, Integer, Integer, Integer)]
   }
   deriving(Show)
 
 PlutusTx.makeLift ''LendingParams
 PlutusTx.makeIsDataIndexed ''LendingParams [('LendingParams,0)]
 
+data NFTInfo = NFTInfo 
+  {
+    score          :: Integer,
+    owner          :: PlutusV2.PubKeyHash,
+    lendingPackage :: Integer
+  }
+  deriving(Show)
+
+PlutusTx.makeLift ''NFTInfo
+PlutusTx.makeIsDataIndexed ''NFTInfo [('NFTInfo,0)]
+
 data DatumParams = DatumParams 
   {
-    score :: Integer,
-    owner :: PlutusV2.PubKeyHash
+    packageNumber :: Integer
   }
   deriving(Show)
 
 PlutusTx.makeLift ''DatumParams
 PlutusTx.makeIsDataIndexed ''DatumParams [('DatumParams,0)]
 
-data RedeemerParams = LEND { packageNumber :: Integer } | PAYBACK
+data RedeemerParams = LEND | PAYBACK | CLAIM
   deriving(Show)
 
 PlutusTx.makeLift ''RedeemerParams
-PlutusTx.makeIsDataIndexed ''RedeemerParams [('LEND,0),('PAYBACK,1)]
+PlutusTx.makeIsDataIndexed ''RedeemerParams [('LEND,0),('PAYBACK,1),('CLAIM,2)]
 
 {-# INLINABLE mkValidator #-}
 mkValidator :: LendingParams -> DatumParams -> RedeemerParams -> PlutusV2.ScriptContext -> Bool
-mkValidator lParams dParams rParams scriptContext = True
+mkValidator lParams dParams rParams scriptContext =   
+    case rParams of
+      LEND ->
+        True
+        -- You must be the Scoring NFT's owner to do this action
+
+        -- The Scoring NFT must be in inputs (belongs to user address)
+
+        -- Check if the user's score is suitable with the package number or not
+
+        -- The value has been paid to user must be correct based on the package number
+
+        -- The Scoring NFT must be sent to Lending Contract after that
+
+        {- 
+          Check output datum for NFT must be valid 
+        -}
+
+        -- score must be unchanged
+
+        -- owner must be unchanged
+
+        -- lendingPackage must be updated with the packageNumber
+
+      PAYBACK -> 
+        True
+        -- You must be the Scoring NFT's owner to do this action
+
+        -- The Scoring NFT must be in inputs (belongs to Lending Contract)
+
+        -- Check if money has been sent back to Lending Contract
+
+        {- 
+          Check output datum for Lending Contract must be valid 
+        -}
+
+        -- packageNumber must be correct
+
+        -- The Scoring NFT must be sent back to user address
+
+        {- 
+          Check output datum for NFT must be valid 
+        -}
+
+        -- score must be unchanged
+
+        -- owner must be unchanged
+
+        -- lendingPackage must be reset to 0
+
+      CLAIM ->
+        True
+        -- You must be the operator to do this action
+
+  where
+    info :: PlutusV2.TxInfo
+    info = PlutusV2.scriptContextTxInfo scriptContext
 
 data ContractType
 
