@@ -26,14 +26,18 @@ import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
 import           LendingContract
+import           GeneralParams
+import           Utility
 
 main :: IO ()
 main = do
-  args <- getArgs
+  [tokenPolicy, tokenName] <- getArgs
+  lendingArgs <- getArgs
 
-  let lendingPackagesInfo' = parseArgs args
+  let lendingPackagesInfo' = parseArgs lendingArgs
 
   let lendingParams = LendingParams {
+    operatorToken' = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
     lendingPackagesInfo = lendingPackagesInfo'
   }
 

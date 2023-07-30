@@ -42,33 +42,7 @@ import           PlutusTx.Prelude                     as P hiding
                                                             unless, (.))
 import           Prelude                              (FilePath, IO, Show (..),
                                                        print, putStrLn, (.))
-
-data LendingParams = LendingParams
-  {
-    {-
-      Each lending package includes:
-      + packageNumber :: Integer,
-      + fromPoint     :: Integer,
-      + toPoint       :: Integer,
-      + lendingAmount :: Integer
-    -}
-    lendingPackagesInfo :: [(Integer, Integer, Integer, Integer)]
-  }
-  deriving(Show)
-
-PlutusTx.makeLift ''LendingParams
-PlutusTx.makeIsDataIndexed ''LendingParams [('LendingParams,0)]
-
-data NFTInfo = NFTInfo 
-  {
-    score          :: Integer,
-    owner          :: PlutusV2.PubKeyHash,
-    lendingPackage :: Integer
-  }
-  deriving(Show)
-
-PlutusTx.makeLift ''NFTInfo
-PlutusTx.makeIsDataIndexed ''NFTInfo [('NFTInfo,0)]
+import           GeneralParams
 
 data DatumParams = DatumParams 
   {

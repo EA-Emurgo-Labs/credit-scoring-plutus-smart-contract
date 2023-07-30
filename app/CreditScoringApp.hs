@@ -26,11 +26,8 @@ import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
 import           CreditScoringContract
-
-toCurrencySymbol :: Haskell.String -> PlutusV2.CurrencySymbol
-toCurrencySymbol str = case (JSON.tryDecode . T.pack) str of
-  Left  _ -> (Value.currencySymbol . fromBuiltin) emptyByteString
-  Right b -> Value.currencySymbol b
+import           GeneralParams
+import           Utility
 
 main :: IO ()
 main = do

@@ -33,16 +33,7 @@ import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding (Semigroup (..),
                                                               unless, (.))
 import           Prelude                         (Show(..))
-
-data OperatorParams = OperatorParams
-  {
-    operatorToken     :: Value.AssetClass,
-    minScoreToMintNFT :: Integer
-  }
-  deriving(Show)
-
-PlutusTx.makeLift ''OperatorParams
-PlutusTx.makeIsDataIndexed ''OperatorParams [('OperatorParams,0)]
+import           GeneralParams
 
 data RedeemerParams = RedeemerParams
   {
