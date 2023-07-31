@@ -31,8 +31,10 @@ import           Utility
 
 main :: IO ()
 main = do
+  -- Get info of operator token and min score to mint NFT.
   [tokenPolicy, tokenName, minScore] <- getArgs
 
+  -- Construct params for Credit Scoring contract.
   let operatorParams = OperatorParams {
     operatorToken = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
     minScoreToMintNFT = Haskell.read minScore :: Integer
@@ -40,6 +42,7 @@ main = do
 
   let contract = "built-contracts/credit-scoring.json"
   
+  -- Built the plutus script for Credit Scoring contract.
   result <- writeFileTextEnvelope contract Nothing $ mintScoringNFT operatorParams
   case result of
     Left err -> Haskell.print $ displayError err

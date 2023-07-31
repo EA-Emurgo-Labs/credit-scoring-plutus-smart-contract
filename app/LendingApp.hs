@@ -31,11 +31,16 @@ import           Utility
 
 main :: IO ()
 main = do
+  -- Get info of operator token and Scoring NFT.
   [tokenPolicy, tokenName, scoringNFTPolicy, scoringNFTName] <- getArgs
+
+  -- Get info of all lending packages.
   lendingArgs <- getArgs
 
+  -- Parse arguments for lending packages.
   let lendingPackagesInfo' = parseArgs lendingArgs
 
+  -- Construct params for Lending contract
   let lendingParams = LendingParams {
     operatorToken' = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
     scoringNFT = Value.AssetClass (toCurrencySymbol scoringNFTPolicy, (Value.TokenName . BC.toBuiltin . C.pack) scoringNFTName),
@@ -44,18 +49,12 @@ main = do
 
   let contract = "built-contracts/lending.json"
   
+  -- Built the plutus script for Lending contract.
   result <- writeFileTextEnvelope contract Nothing $ buildLendingContract lendingParams
   case result of
     Left err -> Haskell.print $ displayError err
     Right () -> Haskell.putStrLn $ "Built lending contract successfully at: " ++ contract
 
-{-
-  Each lending package includes:
-  + packageNumber :: Integer,
-  + fromPoint     :: Integer,
-  + toPoint       :: Integer,
-  + lendingAmount :: Integer
--}
 parseArgs :: [Haskell.String] -> [(Integer, Integer, Integer, Integer)]
 parseArgs [] = []
 parseArgs (packageNumber:fromPoint:toPoint:lendingAmount:xs) =

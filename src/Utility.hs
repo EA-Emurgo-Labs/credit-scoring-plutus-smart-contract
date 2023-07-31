@@ -31,20 +31,24 @@ import           PlutusTx.Prelude           as P hiding (Semigroup (..), unless,
 import           Prelude                    ((.))
 import qualified Prelude                    as Haskell
 
--- This function is to convert from string to currency symbol
+-- This function is to convert from string to currency symbol.
 toCurrencySymbol :: Haskell.String -> PlutusV2.CurrencySymbol
 toCurrencySymbol str = case (JSON.tryDecode . T.pack) str of
   Left  _ -> (Value.currencySymbol . fromBuiltin) emptyByteString
   Right b -> Value.currencySymbol b
 
+-- Get first field from tuple.
 first :: (Integer, Integer, Integer, Integer) -> Integer
 first (x, _, _, _)  = x
 
+-- Get second field from tuple.
 second :: (Integer, Integer, Integer, Integer) -> Integer
 second (_, x, _, _) = x
 
+-- Get third field from tuple.
 third :: (Integer, Integer, Integer, Integer) -> Integer
 third (_, _, x, _)  = x
 
+-- Get fourth field from tuple.
 fourth :: (Integer, Integer, Integer, Integer) -> Integer
 fourth (_, _, _, x) = x
