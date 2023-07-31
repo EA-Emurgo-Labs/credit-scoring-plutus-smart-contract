@@ -53,6 +53,7 @@ data RedeemerParams = RedeemerParams
     -}     
     weights :: [Integer]
   }
+  deriving(Show)
 
 PlutusTx.makeLift ''RedeemerParams
 PlutusTx.makeIsDataIndexed ''RedeemerParams [('RedeemerParams,0)]

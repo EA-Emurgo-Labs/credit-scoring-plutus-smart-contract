@@ -71,25 +71,31 @@ mkValidator lParams dParams rParams scriptContext =
 
         -- You must be the Scoring NFT's owner to do this action
         traceIfFalse "[Plutus Error]: you're not the Scoring NFT's owner"
-          (PlutusV2.txSignedBy info (owner getNFTInfo)) &&
+          (PlutusV2.txSignedBy info (owner getNFTInfoInInput)) &&
 
         -- Check if the user's score is suitable with the package number or not
         traceIfFalse "[Plutus Error]: your score is not good enough to borrow this package"
-          (checkScore $ packageNumber dParams)
+          ((second . getPackageInfo $ packageNumber dParams) <= score getNFTInfoInInput) &&
 
-        -- The value has been paid to user must be correct based on the package number
+        -- The value has been paid to user address must be correct based on the package number
+        traceIfFalse "[Plutus Error]: value has been paid to user address must be correct"
+          (
+            (fourth . getPackageInfo $ packageNumber dParams) == 
+              Value.valueOf (PlutusV2.valuePaidTo info (owner getNFTInfoInInput)) Value.adaSymbol Value.adaToken
+          ) &&
 
-        -- The Scoring NFT must be sent to Lending Contract after that
+        -- The Scoring NFT must be sent to Lending contract after that
+        traceIfFalse "[Plutus Error]: the Scoring NFT must be sent to Lending contract"
+          (Value.assetClassValueOf (PlutusV2.txOutValue getContinuingOutput) (scoringNFT lParams) == 1) &&
 
         {- 
-          Check output datum for NFT must be valid 
+          Output datum of Scoring NFT must be valid:
+            + score must be unchanged
+            + owner must be unchanged
+            + lendingPackage must be updated with the packageNumber
         -}
-
-        -- score must be unchanged
-
-        -- owner must be unchanged
-
-        -- lendingPackage must be updated with the packageNumber
+        traceIfFalse "[Plutus Error]: output datum of Scoring NFT is not correct"
+          (checkOutputDatumNFT getNFTInfoInInput getNFTInfoInOutput)
 
       PAYBACK ->
         -- The Scoring NFT must be in inputs (belongs to Lending Contract)
@@ -98,39 +104,39 @@ mkValidator lParams dParams rParams scriptContext =
 
         -- You must be the Scoring NFT's owner to do this action
         traceIfFalse "[Plutus Error]: you're not the Scoring NFT's owner"
-          (PlutusV2.txSignedBy info (owner getNFTInfo))
-
+          (PlutusV2.txSignedBy info (owner getNFTInfoInInput))
 
         -- Check if money has been sent back to Lending Contract
 
         {- 
-          Check output datum for Lending Contract must be valid 
+          Check output datum for Lending contract must be valid:
+            + packageNumber must be correct
         -}
-
-        -- packageNumber must be correct
 
         -- The Scoring NFT must be sent back to user address
 
         {- 
-          Check output datum for NFT must be valid 
+          Output datum of Scoring NFT must be valid:
+            + score must be unchanged
+            + owner must be unchanged
+            + lendingPackage must be reset to 0
         -}
-
-        -- score must be unchanged
-
-        -- owner must be unchanged
-
-        -- lendingPackage must be reset to 0
 
       CLAIM ->
         traceIfFalse "[Plutus Error]: you're not the operator" ownOperatorTokenInInput
 
   where
+    -- Get all info about the transaction
     info :: PlutusV2.TxInfo
     info = PlutusV2.scriptContextTxInfo scriptContext
 
     -- Get all inputs
     allTxIn :: [PlutusV2.TxInInfo]
     allTxIn = PlutusV2.txInfoInputs info
+
+    -- Get all outputs
+    allTxOut :: [PlutusV2.TxOut]
+    allTxOut = PlutusV2.txInfoOutputs info
 
     ownScoringNFTInInput :: Bool
     ownScoringNFTInInput =
@@ -148,6 +154,14 @@ mkValidator lParams dParams rParams scriptContext =
         Nothing -> traceError "[PlutusError]: cannot find the Scoring NFT in inputs"
         Just i  -> PlutusV2.txInInfoResolved i 
 
+    getTxOutHasScoringNFT :: PlutusV2.TxOut
+    getTxOutHasScoringNFT =
+      case find (
+        \x -> Value.assetClassValueOf (PlutusV2.txOutValue x) (scoringNFT lParams) == 1
+      ) allTxOut of
+        Nothing -> traceError "[PlutusError]: cannot find the Scoring NFT in outputs"
+        Just i  -> i 
+
     parseNFTInfo :: PlutusV2.TxOut -> Maybe NFTInfo
     parseNFTInfo txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing
@@ -156,18 +170,40 @@ mkValidator lParams dParams rParams scriptContext =
                                         Just od -> (PlutusTx.fromBuiltinData $ PlutusV2.getDatum $ od)
                                         Nothing -> Nothing
 
-    getNFTInfo :: NFTInfo
-    getNFTInfo = case parseNFTInfo $ getTxInHasScoringNFT of
-      Nothing -> traceError "[PlutusError]: cannot find NFT info"
+    getNFTInfoInInput :: NFTInfo
+    getNFTInfoInInput = case parseNFTInfo $ getTxInHasScoringNFT of
+      Nothing -> traceError "[PlutusError]: cannot find NFT info in inputs"
       Just i  -> i
 
-    checkScore :: Integer -> Bool
-    checkScore packageNumber' =
+    getNFTInfoInOutput :: NFTInfo
+    getNFTInfoInOutput = case parseNFTInfo $ getTxOutHasScoringNFT of
+      Nothing -> traceError "[PlutusError]: cannot find NFT info in outputs"
+      Just i  -> i
+
+    getPackageInfo :: Integer -> (Integer, Integer, Integer, Integer)
+    getPackageInfo packageNumber =
       case find (
-        \x -> (first x == packageNumber' && second x <= score getNFTInfo)
+        \x -> (first x == packageNumber)
       ) (lendingPackagesInfo lParams) of
-        Nothing -> False
-        Just _  -> True
+        Nothing -> traceError "[Plutus Error]: cannot find the lending package info"
+        Just p  -> p
+
+    getContinuingOutput :: PlutusV2.TxOut
+    getContinuingOutput =
+      case PlutusV2.getContinuingOutputs scriptContext of
+        [i] -> i
+        _   -> traceError "[Plutus Error]: cannot find the continuing output"
+
+    checkOutputDatumNFT :: NFTInfo -> NFTInfo -> Bool
+    checkOutputDatumNFT nftInfoIn nftInfoOut =
+      traceIfFalse "[Plutus Error]: score must be unchanged"
+        (score nftInfoOut == score nftInfoIn) &&
+
+      traceIfFalse "[Plutus Error]: owner must be unchanged"
+        (owner nftInfoOut == owner nftInfoOut) &&
+
+      traceIfFalse "[Plutus Error]: lendingPackage must be updated with packageNumber"
+        (lendingPackage nftInfoOut == packageNumber dParams)
 
     -- Check whether this transaction has the operator token in inputs
     ownOperatorTokenInInput :: Bool
