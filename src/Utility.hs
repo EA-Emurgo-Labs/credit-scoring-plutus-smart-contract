@@ -15,7 +15,11 @@
 
 module Utility
   (
-    toCurrencySymbol
+    toCurrencySymbol,
+    first,
+    second,
+    third,
+    fourth
   )
 where
 
@@ -32,3 +36,15 @@ toCurrencySymbol :: Haskell.String -> PlutusV2.CurrencySymbol
 toCurrencySymbol str = case (JSON.tryDecode . T.pack) str of
   Left  _ -> (Value.currencySymbol . fromBuiltin) emptyByteString
   Right b -> Value.currencySymbol b
+
+first :: (Integer, Integer, Integer, Integer) -> Integer
+first (x, _, _, _)  = x
+
+second :: (Integer, Integer, Integer, Integer) -> Integer
+second (_, x, _, _) = x
+
+third :: (Integer, Integer, Integer, Integer) -> Integer
+third (_, _, x, _)  = x
+
+fourth :: (Integer, Integer, Integer, Integer) -> Integer
+fourth (_, _, _, x) = x

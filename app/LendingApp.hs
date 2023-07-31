@@ -31,13 +31,14 @@ import           Utility
 
 main :: IO ()
 main = do
-  [tokenPolicy, tokenName] <- getArgs
+  [tokenPolicy, tokenName, scoringNFTPolicy, scoringNFTName] <- getArgs
   lendingArgs <- getArgs
 
   let lendingPackagesInfo' = parseArgs lendingArgs
 
   let lendingParams = LendingParams {
     operatorToken' = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
+    scoringNFT = Value.AssetClass (toCurrencySymbol scoringNFTPolicy, (Value.TokenName . BC.toBuiltin . C.pack) scoringNFTName),
     lendingPackagesInfo = lendingPackagesInfo'
   }
 

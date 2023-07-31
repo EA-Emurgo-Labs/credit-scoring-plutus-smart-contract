@@ -40,6 +40,7 @@ PlutusTx.makeIsDataIndexed ''OperatorParams [('OperatorParams,0)]
 data LendingParams = LendingParams
   {
     operatorToken'      :: Value.AssetClass,
+    scoringNFT          :: Value.AssetClass,
 
     {-
       Each lending package includes:
@@ -47,7 +48,7 @@ data LendingParams = LendingParams
       + fromPoint       :: Integer,
       + toPoint         :: Integer,
       + lendingAmount   :: Integer,
-      + lendingInterest :: Integer
+      + lendingInterest :: Integer  -- will implement this feature later
     -}
     lendingPackagesInfo :: [(Integer, Integer, Integer, Integer)]
   }
