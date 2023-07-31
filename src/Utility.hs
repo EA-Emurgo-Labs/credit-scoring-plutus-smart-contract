@@ -27,7 +27,7 @@ import qualified Data.Aeson.Extras          as JSON
 import qualified Data.Text                  as T
 import qualified Plutus.Script.Utils.Value  as Value
 import qualified Plutus.V2.Ledger.Api       as PlutusV2
-import           PlutusTx.Prelude           as P hiding (Semigroup (..), unless, (.))
+import           PlutusTx.Prelude           as P hiding ((.))
 import           Prelude                    ((.))
 import qualified Prelude                    as Haskell
 

@@ -16,8 +16,7 @@
 
 module CreditScoringContract
   (
-    mintScoringNFT,
-    OperatorParams(..)
+    mintScoringNFT
   )
 where
 
@@ -30,8 +29,7 @@ import qualified Ledger.Typed.Scripts            as Scripts
 import qualified Plutus.Script.Utils.Value       as Value
 import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified PlutusTx
-import           PlutusTx.Prelude                as P hiding (Semigroup (..),
-                                                              unless, (.))
+import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))
 import           GeneralParams
 

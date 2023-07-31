@@ -15,13 +15,10 @@
 {-# LANGUAGE LambdaCase            #-}
 
 import           Cardano.Api                hiding (TxId)
-import qualified Plutus.V2.Ledger.Api       as PlutusV2
 import qualified Data.ByteString.Char8      as C
-import qualified Data.Aeson.Extras          as JSON
-import qualified Data.Text                  as T
 import qualified Plutus.Script.Utils.Value  as Value
 import qualified PlutusTx.Builtins.Class    as BC
-import           PlutusTx.Prelude           as P hiding (Semigroup (..), unless, (.))
+import           PlutusTx.Prelude           as P hiding ((.))
 import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
