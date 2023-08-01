@@ -41,16 +41,16 @@ data RedeemerParams = RedeemerParams
   {
     {-
       For example:
-      + Factor 0: age (value: 30 (years old), OR 35 (years old), ...)
-      + Factor 1: salary (value: 1000$, OR 1500$, OR 2000$, ...)
+      + Factor 0: age (value: 10 points (if age = 20 years old), OR 20 points (if age = 30 years old), ...)
+      + Factor 1: salary (value: 15 points (if salary = 1000$), OR 20 points (if salary = 2000$), ...)
       ...
     -} 
-    factors :: [Integer],
+    pointOfFactors :: [Integer],
 
     {-
       For example:
       + Weight 0: weight of age (value: 10, OR 20, ...)
-      + Weight 1: weight of salary (value: 5, OR 7, ...)
+      + Weight 1: weight of salary (value: 5, OR 15, ...)
       ...
     -}     
     weights :: [Integer]
@@ -102,7 +102,7 @@ mkNFTPolicy oParams rParams scriptContext =
     -- Check if the user's total score is good enough to mint Scoring NFT.
     checkMinScoreToMintNFT :: Bool
     checkMinScoreToMintNFT =
-      getTotalScore (factors rParams) (weights rParams) >= minScoreToMintNFT oParams
+      getTotalScore (pointOfFactors rParams) (weights rParams) >= minScoreToMintNFT oParams
 
     -- Calculate the user's total score based on factors and weights.
     getTotalScore :: [Integer] -> [Integer] -> Integer
@@ -135,8 +135,11 @@ mkNFTPolicy oParams rParams scriptContext =
     checkOutputDatum :: Maybe NFTInfo -> Bool
     checkOutputDatum nftInfo = case nftInfo of
       Just (NFTInfo score owner lendingPackage) ->
-        traceIfFalse "[Plutus Error]: score must be valid" (score == getTotalScore (factors rParams) (weights rParams)) &&
+        traceIfFalse "[Plutus Error]: score must be equal the total score has been calculated"
+          (score == getTotalScore (pointOfFactors rParams) (weights rParams)) &&
+
         traceIfFalse "[Plutus Error]: owner must not be empty" (PlutusV2.getPubKeyHash owner /= "") &&
+
         traceIfFalse "[Plutus Error]: lendingPackage must be 0 in intialize" (lendingPackage == 0)
 
       Nothing -> traceError "[Plutus Error]: output datum must not be empty"
