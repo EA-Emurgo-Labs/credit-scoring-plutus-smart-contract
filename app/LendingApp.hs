@@ -28,11 +28,11 @@ import           Utility
 
 main :: IO ()
 main = do
-  -- Get info of operator token and Scoring NFT.
-  [tokenPolicy, tokenName, scoringNFTPolicy, scoringNFTName] <- getArgs
+  -- Get arguments.
+  args <- getArgs
 
-  -- Get info of all lending packages.
-  lendingArgs <- getArgs
+  -- Use pattern to separate the arguments.
+  let (tokenPolicy:tokenName:scoringNFTPolicy:scoringNFTName:lendingArgs) = args
 
   -- Parse arguments for lending packages.
   let lendingPackagesInfo' = parseArgs lendingArgs
