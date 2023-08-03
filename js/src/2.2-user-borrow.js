@@ -26,9 +26,9 @@ const API = new Blockfrost.BlockFrostAPI({
   const scoringNFT = "29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef53636f72696e674e4654456d7572676f4c616273";
 
   // Lending package number that user want to borrow:
-  //  + packageNumber = 1: 1000$ (score 1000 -> 2000 points)
-  //  + packageNumber = 2: 2000$ (score 2001 -> 3000 points)
-  //  + packageNumber = 3: 3000$ (score 3001 -> 4000 points)
+  //  + packageNumber = 1: 1000 ADA (score 1000 -> 2000 points)
+  //  + packageNumber = 2: 2000 ADA (score 2001 -> 3000 points)
+  //  + packageNumber = 3: 3000 ADA (score 3001 -> 4000 points)
   const packageNumber = 1;
 
   //-------------------------------------------------------------------------
@@ -77,27 +77,27 @@ const API = new Blockfrost.BlockFrostAPI({
   const previousDatum = await API.scriptsDatum(previousDatumHash);
   console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
 
-  const score = BigInt(previousDatum.json_value.fields[0]["int"]);
+  const score = previousDatum.json_value.fields[0]["int"];
   // const score = 3000n;
 
   const owner = previousDatum.json_value.fields[1]["bytes"];
   // const owner = "";
 
-  const lendingPackage = BigInt(packageNumber);
+  const lendingPackage = packageNumber;
 
   const redeemer = lucid.Data.to(
     new lucid.Constr(0, [])
   );
 
   const datum = lucid.Data.to(
-    new lucid.Constr(0, [score, owner, lendingPackage])
+    new lucid.Constr(0, [BigInt(score), owner, BigInt(lendingPackage)])
   );
   // console.log('datum: ', datum);
 
   console.log('test: ', BigInt(amountToBorrow * 1e6));
 
   const tx = await api.newTx()
-  .collectFrom([lendingUtxo], redeemer)
+  .collectFrom([nftUtxo, lendingUtxo], redeemer)
   .attachSpendingValidator(LendingContractScript)
   .payToAddress(userAddress, { lovelace: BigInt(amountToBorrow * 1e6) })
   .payToContract(LendingContractAddress, { inline: datum }, { [scoringNFT]: 1n })

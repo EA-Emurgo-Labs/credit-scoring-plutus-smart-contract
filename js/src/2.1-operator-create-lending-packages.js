@@ -26,9 +26,9 @@ const API = new Blockfrost.BlockFrostAPI({
   const operatorId = 'c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f124d6f6f6e7374616b65546573746e657431';
 
   // Lending package number:
-  //  + packageNumber = 1: 1000$
-  //  + packageNumber = 2: 2000$
-  //  + packageNumber = 3: 3000$
+  //  + packageNumber = 1: 1000 ADA
+  //  + packageNumber = 2: 2000 ADA
+  //  + packageNumber = 3: 3000 ADA
   const packageNumber = 1;
 
   //-------------------------------------------------------------------------
