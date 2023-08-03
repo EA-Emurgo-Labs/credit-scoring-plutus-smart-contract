@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE NumericUnderscores    #-}
 
 module LendingContract
   (
@@ -29,8 +30,6 @@ import qualified Ledger.Typed.Scripts                 as Scripts
 import qualified Plutus.Script.Utils.V2.Scripts       as PSU.V2
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as PlutusV2
 import qualified Plutus.Script.Utils.Value            as Value
--- import qualified Plutus.V1.Ledger.Address             as Address
--- import qualified Plutus.V1.Ledger.Interval            as Interval
 import qualified Plutus.V2.Ledger.Api                 as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts            as PlutusV2
 import qualified PlutusTx
@@ -92,7 +91,7 @@ mkValidator lParams dParams rParams scriptContext =
         traceIfFalse "[Plutus Error]: value has been sent to user address must be correct"
           (
             Value.valueOf (PlutusV2.valuePaidTo info (owner getNFTInfoInInput)) Value.adaSymbol Value.adaToken ==
-              (fourth . getPackageInfo $ packageNumber dParams)
+              (fourth . getPackageInfo $ packageNumber dParams) * 1_000_000
           ) &&
 
         -- The Scoring NFT must be sent to Lending contract after that.
@@ -121,7 +120,7 @@ mkValidator lParams dParams rParams scriptContext =
         traceIfFalse "[Plutus Error]: money must be sent back to Lending contract with correct value"
           (
             Value.valueOf (PlutusV2.txOutValue getContinuingOutput) Value.adaSymbol Value.adaToken == 
-              (fourth . getPackageInfo $ lendingPackage getNFTInfoInInput)
+              (fourth . getPackageInfo $ lendingPackage getNFTInfoInInput) * 1_000_000
           ) &&
 
         {- 
@@ -211,13 +210,13 @@ mkValidator lParams dParams rParams scriptContext =
     -- Get NFT's info in input.
     getNFTInfoInInput :: NFTInfo
     getNFTInfoInInput = case parseNFTInfo $ getTxInHasScoringNFT of
-      Nothing -> traceError "[PlutusError]: cannot find NFT info in inputs"
+      Nothing -> traceError "[PlutusError]: cannot find NFT info attached with Scoring NFT in inputs"
       Just i  -> i
 
     -- Get NFT's info in output.
     getNFTInfoInOutput :: NFTInfo
     getNFTInfoInOutput = case parseNFTInfo $ getTxOutHasScoringNFT of
-      Nothing -> traceError "[PlutusError]: cannot find NFT info in outputs"
+      Nothing -> traceError "[PlutusError]: cannot find NFT info attached with Scoring NFT in outputs"
       Just i  -> i
 
     -- Get full information about the lending package.
@@ -243,7 +242,7 @@ mkValidator lParams dParams rParams scriptContext =
         (score nftInfoOut == score nftInfoIn) &&
 
       traceIfFalse "[Plutus Error]: owner must be unchanged"
-        (owner nftInfoOut == owner nftInfoOut) &&
+        (owner nftInfoOut == owner nftInfoIn) &&
 
       traceIfFalse "[Plutus Error]: lendingPackage must be updated with the packageNumber"
         (lendingPackage nftInfoOut == packageNumber dParams)
@@ -255,7 +254,7 @@ mkValidator lParams dParams rParams scriptContext =
         (score nftInfoOut == score nftInfoIn) &&
 
       traceIfFalse "[Plutus Error]: owner must be unchanged"
-        (owner nftInfoOut == owner nftInfoOut) &&
+        (owner nftInfoOut == owner nftInfoIn) &&
 
       traceIfFalse "[Plutus Error]: lendingPackage must be reset to 0"
         (lendingPackage nftInfoOut == 0)
