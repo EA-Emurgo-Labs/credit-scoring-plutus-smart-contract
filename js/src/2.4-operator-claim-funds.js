@@ -25,22 +25,10 @@ const API = new Blockfrost.BlockFrostAPI({
   // Operator token
   const operatorId = 'c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f124d6f6f6e7374616b65546573746e657431';
 
-  // Lending package number:
-  //  + packageNumber = 1: 1000 ADA
-  //  + packageNumber = 2: 2000 ADA
-  //  + packageNumber = 3: 3000 ADA
-  const packageNumber = 1;
+  // Scoring NFT
+  const scoringNFT = "29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef53636f72696e674e4654456d7572676f4c616273";
 
   //-------------------------------------------------------------------------
-
-  let amountToSend = 0;
-  if (packageNumber == 1) {
-    amountToSend = 1000;
-  } else if (packageNumber == 2) {
-    amountToSend = 2000;
-  } else if (packageNumber == 3) {
-    amountToSend = 3000;
-  }
 
   const LendingContractScript = {
     type: "PlutusV2",
@@ -63,14 +51,30 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('operatorUtxo: ', operatorUtxo);
 
-  const datum = lucid.Data.to(
-    new lucid.Constr(0, [BigInt(packageNumber)])
+  const contractUtxos = await api.utxosAt(LendingContractAddress);
+  console.log('contractUtxos: ', contractUtxos);
+
+  let amountToClaim = 0n;
+  let claimUtxos = [];
+  for (let utxo of contractUtxos) {
+    // console.log("utxo.assets[scoringNFT]: ", utxo.assets[scoringNFT])
+    if (utxo.assets[scoringNFT] == undefined) {
+      amountToClaim += utxo.assets.lovelace;
+      claimUtxos.push(utxo);
+    }
+  }
+
+  console.log("claimUtxos: ", claimUtxos);
+  console.log("amountToClaim: ", amountToClaim);
+
+  const redeemer = lucid.Data.to(
+    new lucid.Constr(2, [])
   );
-  // console.log('datum: ', datum);
 
   const tx = await api.newTx()
-  .collectFrom([operatorUtxo])
-  .payToContract(LendingContractAddress, { inline: datum }, { lovelace: BigInt(amountToSend * 1e6) })
+  .collectFrom([operatorUtxo, ...claimUtxos], redeemer)
+  .attachSpendingValidator(LendingContractScript)
+  .payToAddress(operatorAddress, { lovelace: amountToClaim })
   .complete();
 
   const signedTx = await tx.sign().complete();
