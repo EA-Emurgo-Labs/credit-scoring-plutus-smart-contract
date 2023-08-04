@@ -15,6 +15,7 @@
 
 module Utility
   (
+    getTotalScore,
     toCurrencySymbol,
     first,
     second,
@@ -30,6 +31,14 @@ import qualified Plutus.V2.Ledger.Api       as PlutusV2
 import           PlutusTx.Prelude           as P hiding ((.))
 import           Prelude                    ((.))
 import qualified Prelude                    as Haskell
+
+-- Calculate the user's total score based on factors and weights.
+getTotalScore :: [Integer] -> [Integer] -> Integer
+getTotalScore [] []         = 0
+getTotalScore _  []         = 0
+getTotalScore [] _          = 0
+getTotalScore [x] [y]       = x * y
+getTotalScore (x:xs) (y:ys) = x * y + getTotalScore xs ys
 
 -- This function is to convert from string to currency symbol.
 toCurrencySymbol :: Haskell.String -> PlutusV2.CurrencySymbol

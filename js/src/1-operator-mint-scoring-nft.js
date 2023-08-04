@@ -47,6 +47,7 @@ const API = new Blockfrost.BlockFrostAPI({
 
   // Data Model
 
+  // Define points
   let agePoint = 0;
   if (age >= 18 && age <= 25) {
     agePoint = 10;
@@ -69,10 +70,14 @@ const API = new Blockfrost.BlockFrostAPI({
     salaryPoint = 45
   }
 
-  const pointOfFactors = [BigInt(agePoint), BigInt(salaryPoint)];
-
+  // Define weights
   const ageWeight = 50;
   const salaryWeight = 50;
+
+  //-------------------------------------------------------------------------
+
+  const pointOfFactors = [BigInt(agePoint), BigInt(salaryPoint)];
+
   const weights = [BigInt(ageWeight), BigInt(salaryWeight)];
 
   // Redeemer
@@ -87,7 +92,7 @@ const API = new Blockfrost.BlockFrostAPI({
     totalScore += pointOfFactors[i] * weights[i];
   }
   console.log(`totalScore: ${totalScore}`);
-  // totalScore = 1000n;
+  // totalScore = 3000n;
   const owner = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
   // const owner = "";
   const lendingPackage = 0n;
@@ -96,6 +101,7 @@ const API = new Blockfrost.BlockFrostAPI({
   let address = await wallet.wallet.address();
 
   let utxos = await api.utxosAt(address);
+  // let utxos = await api.utxosAt("addr_test1vzym9zs9h9w6yexdxys5kvehn7jw2yee3yy64t65vfg4hqswdtwh9");
   console.log('utxos: ', utxos);
 
   let operatorUtxo = utxos.find(x => 

@@ -16,7 +16,9 @@
 
 module CreditScoringContract
   (
-    mintScoringNFT
+    mintScoringNFT,
+    policy,
+    mintingContractSymbol
   )
 where
 
@@ -32,7 +34,9 @@ import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))
+import           Plutus.Script.Utils.V2.Scripts  (scriptCurrencySymbol)
 import           GeneralParams
+import           Utility
 
 {-
 These parameters will include all onchain and offchain data to calculate the score for user.
@@ -104,14 +108,6 @@ mkNFTPolicy oParams rParams scriptContext =
     checkMinScoreToMintNFT =
       getTotalScore (pointOfFactors rParams) (weights rParams) >= minScoreToMintNFT oParams
 
-    -- Calculate the user's total score based on factors and weights.
-    getTotalScore :: [Integer] -> [Integer] -> Integer
-    getTotalScore [] []         = 0
-    getTotalScore _  []         = 0
-    getTotalScore [] _          = 0
-    getTotalScore [x] [y]       = x * y
-    getTotalScore (x:xs) (y:ys) = x * y + getTotalScore xs ys
-
     {-
     This function will check whether the Scoring NFT is in the outputs or not.
     If yes, the txout will be used to parse and check whether the output datum is correct or not.
@@ -144,6 +140,7 @@ mkNFTPolicy oParams rParams scriptContext =
 
       Nothing -> traceError "[Plutus Error]: output datum must not be empty"
 
+
 policy :: OperatorParams -> Scripts.MintingPolicy
 policy params = PlutusV2.mkMintingPolicyScript $
     $$(PlutusTx.compile [|| wrap ||])
@@ -151,6 +148,9 @@ policy params = PlutusV2.mkMintingPolicyScript $
     PlutusTx.liftCode params
   where
     wrap params' = Scripts.mkUntypedMintingPolicy $ mkNFTPolicy params'
+
+mintingContractSymbol :: OperatorParams -> PlutusV2.CurrencySymbol
+mintingContractSymbol params = scriptCurrencySymbol $ policy params
 
 script :: OperatorParams -> PlutusV2.Script
 script params = PlutusV2.unMintingPolicyScript $ policy params
