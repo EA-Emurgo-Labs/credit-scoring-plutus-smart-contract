@@ -23,7 +23,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const paymentKey = lucid.C.PrivateKey.from_normal_bytes(Buffer.from("cd2f0c43542705d8318a4ea48e5e457ef7f2a4f012a79d8ea73e83d56f0ab642", "hex"));
 
   // Scoring NFT
-  const scoringNFT = "29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef53636f72696e674e4654456d7572676f4c616273";
+  const scoringNFT = "d9a6c3ebf6492749f6063a1851d6607c1c8ce289da762c11a19bd32253636f72696e674e4654456d7572676f4c616273";
 
   //-------------------------------------------------------------------------
 
@@ -41,6 +41,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const userAddress = await wallet.wallet.address();
 
   const utxos = await api.utxosAt(userAddress);
+  // const utxos = await api.utxosAt("addr_test1vzym9zs9h9w6yexdxys5kvehn7jw2yee3yy64t65vfg4hqswdtwh9");
   console.log('utxos: ', utxos);
 
   const contractUtxos = await api.utxosAt(LendingContractAddress);
@@ -51,7 +52,10 @@ const API = new Blockfrost.BlockFrostAPI({
   let owner = "";
   let packageNumber = 0;
 
-  for (const utxo of contractUtxos) {
+  const nftUtxos = contractUtxos.filter(x => x.assets[scoringNFT] == 1n);
+  console.log('nftUtxos: ', nftUtxos);
+
+  for (const utxo of nftUtxos) {
     const txInfo = await API.txsUtxos(utxo.txHash);
     // console.log('txInfo: ', txInfo);
 
@@ -73,10 +77,11 @@ const API = new Blockfrost.BlockFrostAPI({
     if (ownerInDatum == lucid.getAddressDetails(userAddress).paymentCredential?.hash) {
       nftUtxo = utxo;
       score = previousDatum.json_value.fields[0]["int"];
-      // const score = 3000n;
+      // const score = 3000;
       owner = previousDatum.json_value.fields[1]["bytes"];
       // const owner = "";
       packageNumber = previousDatum.json_value.fields[2]["int"];
+      // packageNumber = 0;
     }
   }
 
@@ -110,11 +115,16 @@ const API = new Blockfrost.BlockFrostAPI({
   // console.log('test: ', BigInt(amountToBorrow * 1e6));
 
   const tx = await api.newTx()
+  // .collectFrom([contractUtxos[0]], redeemer)
   .collectFrom([nftUtxo], redeemer)
   .attachSpendingValidator(LendingContractScript)
   .payToAddressWithData(userAddress, { inline: datumNFT }, { [scoringNFT]: 1n })
+  // .payToAddressWithData("addr_test1vrlqualxp9m5juf7knj07mr9d32nwmmr85vkmkxgulrzxfqq3w6g5", { inline: datumNFT }, { [scoringNFT]: 1n })
+  // .payToAddressWithData(userAddress, { inline: lucid.Data.void() }, { [scoringNFT]: 1n })
   // .payToAddressWithData(userAddress, { inline: lucid.Data.void() }, { lovelace: 1000000n })
   .payToContract(LendingContractAddress, { inline: datumLendingPackage }, { lovelace: BigInt(amountToPayback * 1e6) })
+  // .payToContract(LendingContractAddress, { inline: datumLendingPackage }, { lovelace: BigInt(500 * 1e6) })
+  // .payToContract(LendingContractAddress, { inline: lucid.Data.void() }, { lovelace: BigInt(amountToPayback * 1e6) })
   // .payToContract(LendingContractAddress, { inline: lucid.Data.void() }, { lovelace: 1000000n })
   .addSigner(userAddress)
   .complete();

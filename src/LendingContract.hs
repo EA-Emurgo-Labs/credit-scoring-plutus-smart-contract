@@ -89,10 +89,7 @@ mkValidator lParams dParams rParams scriptContext =
 
         -- The value has been sent to user address must be correct based on the package number.
         traceIfFalse "[Plutus Error]: value has been sent to user address must be correct"
-          (
-            Value.valueOf (PlutusV2.valuePaidTo info (owner getNFTInfoInInput)) Value.adaSymbol Value.adaToken ==
-              (fourth . getPackageInfo $ packageNumber dParams) * 1_000_000
-          ) &&
+          (checkReceivedAmount (owner getNFTInfoInInput) (packageNumber dParams)) &&
 
         -- The Scoring NFT must be sent to Lending contract after that.
         traceIfFalse "[Plutus Error]: the Scoring NFT must be sent to Lending contract"
@@ -227,6 +224,15 @@ mkValidator lParams dParams rParams scriptContext =
       ) (lendingPackagesInfo lParams) of
         Nothing -> traceError "[Plutus Error]: cannot find the lending package info"
         Just p  -> p
+
+    -- Check if user receive the correct value when borrowing from Lending contract
+    checkReceivedAmount :: PlutusV2.PubKeyHash -> Integer -> Bool
+    checkReceivedAmount owner' packageNumber' =
+      case find (
+        \x -> Value.valueOf x Value.adaSymbol Value.adaToken == (fourth . getPackageInfo $ packageNumber') * 1_000_000
+      ) (PlutusV2.pubKeyOutputsAt owner' info) of
+        Nothing -> False
+        Just _  -> True
 
     -- Get the continuing output has been sent to Lending contract address.
     getContinuingOutput :: PlutusV2.TxOut

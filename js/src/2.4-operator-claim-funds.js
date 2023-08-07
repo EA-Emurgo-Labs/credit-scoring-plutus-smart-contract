@@ -26,7 +26,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const operatorId = 'c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f124d6f6f6e7374616b65546573746e657431';
 
   // Scoring NFT
-  const scoringNFT = "29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef53636f72696e674e4654456d7572676f4c616273";
+  const scoringNFT = "d9a6c3ebf6492749f6063a1851d6607c1c8ce289da762c11a19bd32253636f72696e674e4654456d7572676f4c616273";
 
   //-------------------------------------------------------------------------
 
@@ -72,6 +72,7 @@ const API = new Blockfrost.BlockFrostAPI({
   );
 
   const tx = await api.newTx()
+  // .collectFrom([...claimUtxos], redeemer)
   .collectFrom([operatorUtxo, ...claimUtxos], redeemer)
   .attachSpendingValidator(LendingContractScript)
   .payToAddress(operatorAddress, { lovelace: amountToClaim })

@@ -72,7 +72,7 @@ cabal run lending <operatorTokenPolicy> <operatorTokenName> <scoringNFTPolicy> <
 
 For example:
 ```
-cabal run lending c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef ScoringNFTEmurgoLabs 1 1000 2000 1000 2 2001 3000 2000 3 3001 4000 3000
+cabal run lending c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 d9a6c3ebf6492749f6063a1851d6607c1c8ce289da762c11a19bd322 ScoringNFTEmurgoLabs 1 1000 2000 1000 2 2001 3000 2000 3 3001 4000 3000
 ```
 
 ## Interacte with contracts by using lucid-cardano

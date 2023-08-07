@@ -23,7 +23,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const paymentKey = lucid.C.PrivateKey.from_normal_bytes(Buffer.from("cd2f0c43542705d8318a4ea48e5e457ef7f2a4f012a79d8ea73e83d56f0ab642", "hex"));
 
   // Scoring NFT
-  const scoringNFT = "29945394e952ab8b98d0619a7bb1ec186045cfd1155a1dee50eed0ef53636f72696e674e4654456d7572676f4c616273";
+  const scoringNFT = "d9a6c3ebf6492749f6063a1851d6607c1c8ce289da762c11a19bd32253636f72696e674e4654456d7572676f4c616273";
 
   // Lending package number that user want to borrow:
   //  + packageNumber = 1: 1000 ADA (score 1000 -> 2000 points)
@@ -64,7 +64,7 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('nftUtxo: ', nftUtxo);
 
   const contractUtxos = await api.utxosAt(LendingContractAddress);
-  // console.log('contractUtxos: ', contractUtxos);
+  console.log('contractUtxos: ', contractUtxos);
 
   const lendingUtxo = contractUtxos.find(x =>
     x.assets.lovelace == BigInt(amountToBorrow * 1e6)
@@ -78,12 +78,13 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
 
   const score = previousDatum.json_value.fields[0]["int"];
-  // const score = 3000n;
+  // const score = 3000;
 
   const owner = previousDatum.json_value.fields[1]["bytes"];
   // const owner = "";
 
   const lendingPackage = packageNumber;
+  // const lendingPackage = 0;
 
   const redeemer = lucid.Data.to(
     new lucid.Constr(0, [])
@@ -97,11 +98,13 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('test: ', BigInt(amountToBorrow * 1e6));
 
   const tx = await api.newTx()
+  // .collectFrom([lendingUtxo], redeemer)
   .collectFrom([nftUtxo, lendingUtxo], redeemer)
   .attachSpendingValidator(LendingContractScript)
   .payToAddress(userAddress, { lovelace: BigInt(amountToBorrow * 1e6) })
+  // .payToAddress(userAddress, { lovelace: BigInt(400 * 1e6) })
   .payToContract(LendingContractAddress, { inline: datum }, { [scoringNFT]: 1n })
-  // .payToContract(LendingContractAddress, { inline: datum }, { lovelace: 1000000n })
+  // .payToContract(LendingContractAddress, { inline: datum }, { lovelace: 500000000n })
   .addSigner(userAddress)
   .complete();
 
