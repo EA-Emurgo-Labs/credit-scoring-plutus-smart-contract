@@ -17,7 +17,8 @@
 
 module LendingContract
   (
-    buildLendingContract
+    buildLendingContract,
+    validator
   )
 where
 
