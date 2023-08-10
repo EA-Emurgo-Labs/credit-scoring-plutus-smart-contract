@@ -18,9 +18,6 @@ import           Utility
 import           CreditScoringContract      as CS
 import           LendingContract            as LC
 import           PlutusTx.Prelude           (find, isJust)
--- import qualified Plutus.V2.Ledger.Api       as PlutusV2
--- import qualified Plutus.V2.Ledger.Contexts  as PlutusV2
--- import qualified PlutusTx
 
 ---------------------------------------------------------------------------------------------------
 --------------------------------------- TESTING MAIN ----------------------------------------------
@@ -30,7 +27,11 @@ main = defaultMain $ do
   testGroup
     "Test lending contract"
     [ 
-      testProperty "Borrow: user doesn't have Scoring NFT in inputs" prop_Borrow_NoScoringNFTInInputs_Fails
+      testProperty "Borrow: user doesn't have Scoring NFT in inputs"    prop_Borrow_NoScoringNFTInInputs_Fails
+    , testProperty "Borrow: user's score is not good enough"            prop_Borrow_PoorScore_Fails
+    , testProperty "Borrow: value has been sent to user is not correct" prop_Borrow_WrongValue_Fails
+    , testProperty "Borrow: output datum is not correct"                prop_Borrow_WrongOutputDatum_Fails
+    , testProperty "Borrow: everything is good"                         prop_Borrow_AllGood_Succeeds
     ]
 
 ---------------------------------------------------------------------------------------------------
@@ -114,25 +115,45 @@ borrowPackage usp user packageNumber valPackage userScore valScoringNFT = mconca
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- TESTING PROPERTIES ------------------------------------------
 
-prop_Borrow_NoScoringNFTInInputs_Fails :: Bool -> Integer -> Property
-prop_Borrow_NoScoringNFTInInputs_Fails isScoringNFTOwner userScore =
+prop_Borrow_NoScoringNFTInInputs_Fails :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_NoScoringNFTInInputs_Fails isScoringNFTOwner userScore packageNumber amountADA =
   (isScoringNFTOwner == False) ==> 
-    runChecks False isScoringNFTOwner userScore
+    runChecks False isScoringNFTOwner userScore packageNumber amountADA
+
+prop_Borrow_PoorScore_Fails :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_PoorScore_Fails _ userScore packageNumber amountADA =
+  (userScore < 1000 && amountADA > 0) ==> 
+    runChecks False True userScore packageNumber amountADA
+
+prop_Borrow_WrongValue_Fails :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_WrongValue_Fails _ _ _ amountADA =
+  (amountADA > 0 && amountADA < 1000) ==> 
+    runChecks False True 1000 1 amountADA
+
+prop_Borrow_WrongOutputDatum_Fails :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_WrongOutputDatum_Fails _ userScore _ _ =
+  (userScore < 1000) ==> 
+    runChecks False True userScore 1 1000 
+
+prop_Borrow_AllGood_Succeeds :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_AllGood_Succeeds isScoringNFTOwner _ _ _ =
+  (isScoringNFTOwner == True) ==> 
+    runChecks True isScoringNFTOwner 1000 1 1000 
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- RUNNING THE TESTS -------------------------------------------
 
-runChecks :: Bool -> Bool -> Integer -> Property
-runChecks canBorrow isScoringNFTOwner userScore =
-  collect (isScoringNFTOwner, userScore) $ monadic property check
+runChecks :: Bool -> Bool -> Integer -> Integer -> Integer -> Property
+runChecks canBorrow isScoringNFTOwner userScore packageNumber amountADA =
+  collect (isScoringNFTOwner, userScore, packageNumber, amountADA) $ monadic property check
   -- monadic property check
     where 
       check = do
-        isGood <- run $ testValues canBorrow isScoringNFTOwner userScore
+        isGood <- run $ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA
         assert isGood
 
-testValues :: Bool -> Bool -> Integer -> Run Bool
-testValues canBorrow isScoringNFTOwner userScore = do
+testValues :: Bool -> Bool -> Integer -> Integer -> Integer -> Run Bool
+testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
   [operator, scoringNFTOwner, normalUser] <- setupUsers
 
   let normalVal     = adaValue 100 
@@ -168,8 +189,7 @@ testValues canBorrow isScoringNFTOwner userScore = do
   uspScoringNFTOwner <- spend scoringNFTOwner valScoringNFT
   uspNormalUser      <- spend normalUser normalVal
 
-  let packageNumber = 1
-  let amount = adaValue 1000
+  let amount = adaValue amountADA
 
   let usp  = if isScoringNFTOwner then uspScoringNFTOwner else uspNormalUser
       user = if isScoringNFTOwner then scoringNFTOwner else normalUser
