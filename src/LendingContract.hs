@@ -18,7 +18,9 @@
 module LendingContract
   (
     buildLendingContract,
-    validator
+    validator,
+    DatumParams(..),
+    RedeemerParams(..)
   )
 where
 
