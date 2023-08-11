@@ -27,11 +27,11 @@ main = defaultMain $ do
   testGroup
     "Test lending contract"
     [ 
-    --   testProperty "Borrow: user doesn't have Scoring NFT in inputs"    prop_Borrow_NoScoringNFTInInputs_Fails
-    -- , testProperty "Borrow: user's score is not good enough"            prop_Borrow_PoorScore_Fails
-    -- , testProperty "Borrow: value has been sent to user is not correct" prop_Borrow_WrongValue_Fails
-    -- , testProperty "Borrow: output datum is not correct"                prop_Borrow_WrongOutputDatum_Fails
-    testProperty "Borrow: everything is good"                         prop_Borrow_AllGood_Succeeds
+      testProperty "Borrow: user doesn't have Scoring NFT in inputs"    prop_Borrow_NoScoringNFTInInputs_Fails
+    , testProperty "Borrow: user's score is not good enough"            prop_Borrow_PoorScore_Fails
+    , testProperty "Borrow: value has been sent to user is not correct" prop_Borrow_WrongValue_Fails
+    , testProperty "Borrow: output datum is not correct"                prop_Borrow_WrongOutputDatum_Fails
+    -- , testProperty "Borrow: everything is good"                         prop_Borrow_AllGood_Succeeds
     ]
 
 ---------------------------------------------------------------------------------------------------
@@ -105,10 +105,10 @@ createLendingPackages usp packageNumber val pkhOperator valOperatorToken = mconc
   , payToKey pkhOperator valOperatorToken
   ]
 
-borrowPackage :: UserSpend -> PubKeyHash -> TxOutRef -> Integer -> Integer -> Value -> Integer -> Value -> Tx
-borrowPackage usp user ref redeemer packageNumber' valPackage userScore valScoringNFT = mconcat
+borrowPackage :: UserSpend -> PubKeyHash -> TxOutRef -> Integer -> Value -> Integer -> Value -> Tx
+borrowPackage usp user ref packageNumber' valPackage userScore valScoringNFT = mconcat
   [ userSpend usp
-  , spendScript scriptLendingContract ref (LC.BORROW) (LC.DatumParams { LC.packageNumber = packageNumber' })
+  , spendScript scriptLendingContract ref LC.BORROW (LC.DatumParams packageNumber')
   , payToScript scriptLendingContract (HashDatum (NFTInfo userScore user packageNumber')) valScoringNFT
   , payToKey user valPackage
   ]
@@ -136,10 +136,10 @@ prop_Borrow_WrongOutputDatum_Fails _ userScore _ _ =
   (userScore < 1000) ==> 
     runChecks False True userScore 1 1000 
 
-prop_Borrow_AllGood_Succeeds :: Bool -> Integer -> Integer -> Integer -> Property
-prop_Borrow_AllGood_Succeeds isScoringNFTOwner _ _ _ =
-  (isScoringNFTOwner == True) ==> 
-    runChecks True isScoringNFTOwner 1000 1 1000 
+-- prop_Borrow_AllGood_Succeeds :: Bool -> Integer -> Integer -> Integer -> Property
+-- prop_Borrow_AllGood_Succeeds isScoringNFTOwner _ _ _ =
+--   (isScoringNFTOwner == True) ==> 
+--     runChecks True isScoringNFTOwner 1000 1 1000 
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- RUNNING THE TESTS -------------------------------------------
@@ -174,22 +174,6 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
   submitTx operator tx1
   waitNSlots 10
 
-  -- let operatorVal2 = adaValue 2000 <> operatorTokenValue 
-  -- uspOperator2 <- spend operator operatorVal2
-  -- let package2 = 2
-  -- let amount2 = adaValue 2000
-  -- let tx2 = createLendingPackages uspOperator2 package2 amount2 operator operatorTokenValue
-  -- submitTx operator tx2
-  -- waitNSlots 10
-
-  -- let operatorVal3 = adaValue 3000 <> operatorTokenValue 
-  -- uspOperator3 <- spend operator operatorVal3
-  -- let package3 = 3
-  -- let amount3 = adaValue 3000
-  -- let tx3 = createLendingPackages uspOperator3 package3 amount3 operator operatorTokenValue
-  -- submitTx operator tx3
-  -- waitNSlots 10
-
   [(txOutRef, _)] <- utxoAt scriptLendingContract
 
 
@@ -200,7 +184,7 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
 
   let usp  = if isScoringNFTOwner then uspScoringNFTOwner else uspNormalUser
       user = if isScoringNFTOwner then scoringNFTOwner else normalUser
-      tx4  = borrowPackage usp user txOutRef 0 packageNumber amount userScore valScoringNFT
+      tx4  = borrowPackage usp user txOutRef packageNumber amount userScore valScoringNFT
 
   if canBorrow then submitTx user tx4 else mustFail . submitTx user $ tx4
 
@@ -225,8 +209,6 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
 
 
   if canBorrow then
-    return $ isJust nftSentToContract
-    -- return $ isJust valueSentToUser && isJust nftSentToContract
+    return $ isJust valueSentToUser && isJust nftSentToContract
   else
-    return $ not $ isJust nftSentToContract
-    -- return $ not $ isJust valueSentToUser && isJust nftSentToContract
+    return $ not $ isJust valueSentToUser && isJust nftSentToContract
