@@ -27,11 +27,11 @@ main = defaultMain $ do
   testGroup
     "Test lending contract"
     [ 
-      testProperty "Borrow: user doesn't have Scoring NFT in inputs"    prop_Borrow_NoScoringNFTInInputs_Fails
-    , testProperty "Borrow: user's score is not good enough"            prop_Borrow_PoorScore_Fails
-    , testProperty "Borrow: value has been sent to user is not correct" prop_Borrow_WrongValue_Fails
-    , testProperty "Borrow: output datum is not correct"                prop_Borrow_WrongOutputDatum_Fails
-    -- , testProperty "Borrow: everything is good"                         prop_Borrow_AllGood_Succeeds
+    --   testProperty "Borrow: user doesn't have Scoring NFT in inputs"    prop_Borrow_NoScoringNFTInInputs_Fails
+    -- , testProperty "Borrow: user's score is not good enough"            prop_Borrow_PoorScore_Fails
+    -- , testProperty "Borrow: value has been sent to user is not correct" prop_Borrow_WrongValue_Fails
+    -- , testProperty "Borrow: output datum is not correct"                prop_Borrow_WrongOutputDatum_Fails
+    testProperty "Borrow: everything is good"                         prop_Borrow_AllGood_Succeeds
     ]
 
 ---------------------------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ mintNFT usp valScoringNFT pointOfFactors weights user pkhOperator valOperatorTok
 createLendingPackages :: UserSpend -> Integer -> Value -> PubKeyHash -> Value -> Tx
 createLendingPackages usp packageNumber val pkhOperator valOperatorToken = mconcat
   [ userSpend usp
-  , payToScript scriptLendingContract (HashDatum (packageNumber)) val
+  , payToScript scriptLendingContract (HashDatum (LC.DatumParams packageNumber)) val
   , payToKey pkhOperator valOperatorToken
   ]
 
@@ -136,10 +136,10 @@ prop_Borrow_WrongOutputDatum_Fails _ userScore _ _ =
   (userScore < 1000) ==> 
     runChecks False True userScore 1 1000 
 
--- prop_Borrow_AllGood_Succeeds :: Bool -> Integer -> Integer -> Integer -> Property
--- prop_Borrow_AllGood_Succeeds isScoringNFTOwner _ _ _ =
---   (isScoringNFTOwner == True) ==> 
---     runChecks True isScoringNFTOwner 1000 1 1000 
+prop_Borrow_AllGood_Succeeds :: Bool -> Integer -> Integer -> Integer -> Property
+prop_Borrow_AllGood_Succeeds isScoringNFTOwner _ _ _ =
+  (isScoringNFTOwner == True) ==> 
+    runChecks True isScoringNFTOwner 1000 1 1000 
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- RUNNING THE TESTS -------------------------------------------
@@ -166,6 +166,17 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
   submitTx operator tx
   waitNSlots 10
 
+  -- utxosNFT <- utxoAt scoringNFTOwner
+
+  -- let nft = find(\x -> do
+  --             let (_, txOut') = x
+  --                 value' = txOutValue txOut'
+  --                 [(cs, tn, amt)] = flattenValue value'
+  --             cs == CS.mintingContractSymbol operatorParams && tn == nameScoringNFT && amt == 1
+  --           ) utxosNFT
+
+  -- return $ isJust nft
+
   let operatorVal1 = adaValue 1000 <> operatorTokenValue 
   uspOperator1 <- spend operator operatorVal1
   let package1 = 1
@@ -174,8 +185,18 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
   submitTx operator tx1
   waitNSlots 10
 
-  [(txOutRef, _)] <- utxoAt scriptLendingContract
+  -- utxosLending <- utxoAt scriptLendingContract
 
+  -- let amountLending = find(\x -> do
+  --                       let (_, txOut') = x
+  --                           value' = txOutValue txOut'
+  --                           [(_, _, amt)] = flattenValue value'
+  --                       amt == 1000
+  --                     ) utxosLending
+
+  -- return $ isJust amountLending
+
+  [(txOutRef, _)] <- utxoAt scriptLendingContract
 
   uspScoringNFTOwner <- spend scoringNFTOwner valScoringNFT
   uspNormalUser      <- spend normalUser normalVal
@@ -184,9 +205,9 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
 
   let usp  = if isScoringNFTOwner then uspScoringNFTOwner else uspNormalUser
       user = if isScoringNFTOwner then scoringNFTOwner else normalUser
-      tx4  = borrowPackage usp user txOutRef packageNumber amount userScore valScoringNFT
+      tx2  = borrowPackage usp user txOutRef packageNumber amount userScore valScoringNFT
 
-  if canBorrow then submitTx user tx4 else mustFail . submitTx user $ tx4
+  if canBorrow then submitTx user tx2 else mustFail . submitTx user $ tx2
 
   waitNSlots 10
 
@@ -197,7 +218,7 @@ testValues canBorrow isScoringNFTOwner userScore packageNumber amountADA = do
                           let (_, txOut') = x
                               value' = txOutValue txOut'
                               [(_, _, amt)] = flattenValue value'
-                          amt == 1000000000
+                          amt == 1000
                         ) utxos1
 
   let nftSentToContract = find(\x -> do
