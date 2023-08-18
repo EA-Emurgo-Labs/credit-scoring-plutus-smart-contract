@@ -82,30 +82,30 @@ mkValidator lParams dParams rParams scriptContext =
         traceIfFalse "[PlutusError]: cannot find the Scoring NFT in inputs"
           ownScoringNFTInInput &&
 
-        -- -- You must be the Scoring NFT's owner to do this action.
-        -- traceIfFalse "[Plutus Error]: you're not the Scoring NFT's owner"
-        --   (PlutusV2.txSignedBy info (owner getNFTInfoInInput))
+        -- You must be the Scoring NFT's owner to do this action.
+        traceIfFalse "[Plutus Error]: you're not the Scoring NFT's owner"
+          (PlutusV2.txSignedBy info (owner getNFTInfoInInput)) &&
 
-        -- -- Check if the user's score is suitable with the package number or not.
-        -- traceIfFalse "[Plutus Error]: your score is not good enough to borrow this package"
-        --   (score getNFTInfoInInput >= (second . getPackageInfo $ packageNumber dParams))
+        -- Check if the user's score is suitable with the package number or not.
+        traceIfFalse "[Plutus Error]: your score is not good enough to borrow this package"
+          (score getNFTInfoInInput >= (second . getPackageInfo $ packageNumber dParams)) &&
 
-        -- -- The value has been sent to user address must be correct based on the package number.
-        -- traceIfFalse "[Plutus Error]: value has been sent to user address must be correct"
-        --   (checkReceivedAmount (owner getNFTInfoInInput) (packageNumber dParams))
+        -- The value has been sent to user address must be correct based on the package number.
+        traceIfFalse "[Plutus Error]: value has been sent to user address must be correct"
+          (checkReceivedAmount (owner getNFTInfoInInput) (packageNumber dParams)) &&
 
         -- The Scoring NFT must be sent to Lending contract after that.
         traceIfFalse "[Plutus Error]: the Scoring NFT must be sent to Lending contract"
-          (Value.assetClassValueOf (PlutusV2.txOutValue getContinuingOutput) (scoringNFT lParams) == 1)
+          (Value.assetClassValueOf (PlutusV2.txOutValue getContinuingOutput) (scoringNFT lParams) == 1) &&
 
-        -- {- 
-        --   Output datum of Scoring NFT must be valid:
-        --     + score must be unchanged.
-        --     + owner must be unchanged.
-        --     + lendingPackage must be updated with the packageNumber.
-        -- -}
-        -- traceIfFalse "[Plutus Error]: output datum of Scoring NFT (borrow) is not correct"
-        --   (checkOutputDatumNFTBorrow getNFTInfoInInput getNFTInfoInOutput)
+        {- 
+          Output datum of Scoring NFT must be valid:
+            + score must be unchanged.
+            + owner must be unchanged.
+            + lendingPackage must be updated with the packageNumber.
+        -}
+        traceIfFalse "[Plutus Error]: output datum of Scoring NFT (borrow) is not correct"
+          (checkOutputDatumNFTBorrow getNFTInfoInInput getNFTInfoInOutput)
 
       PAYBACK ->
         -- The Scoring NFT must be in inputs (belongs to Lending contract).
