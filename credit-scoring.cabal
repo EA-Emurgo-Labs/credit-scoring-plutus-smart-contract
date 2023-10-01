@@ -9,7 +9,6 @@ License:            Apache-2.0
 library
   hs-source-dirs:      src
   exposed-modules:     CreditScoringContract
-                     , LendingContract
                      , GeneralParams
                      , Utility
   build-depends:       aeson
@@ -63,70 +62,8 @@ executable credit-scoring
     , aeson
     , credit-scoring
 
-executable lending
-  main-is:            LendingApp.hs
-  hs-source-dirs:     app
-  default-language:   Haskell2010
-  ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas
-                      -fno-omit-interface-pragmas -fno-strictness 
-                      -fno-spec-constr -fno-specialise -fexpose-all-unfoldings
-                      -fplugin-opt PlutusTx.Plugin:defer-errors
-  build-depends:
-    , base                    ^>=4.14.1.0
-    , bytestring
-    , containers
-    , cardano-api
-    , data-default
-    , formatting
-    , freer-extras
-    , plutus-contract
-    , plutus-ledger
-    , plutus-ledger-api
-    , plutus-tx-constraints
-    , plutus-script-utils
-    , plutus-tx-plugin
-    , plutus-tx
-    , text
-    , serialise
-    , aeson
-    , credit-scoring
-
 test-suite test-credit-scoring
     main-is:            PTCreditScoringContract.hs
-    type:               exitcode-stdio-1.0
-    hs-source-dirs:     test
-    default-language:   Haskell2010
-    ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas
-                        -fno-omit-interface-pragmas -fno-strictness 
-                        -fno-spec-constr -fno-specialise -fexpose-all-unfoldings
-                        -fplugin-opt PlutusTx.Plugin:defer-errors
-    build-depends:
-      , base                ^>=4.14.1.0
-      , bytestring
-      , containers
-      , cardano-api
-      , data-default
-      , formatting
-      , freer-extras
-      , plutus-contract
-      , plutus-ledger
-      , plutus-ledger-api
-      , plutus-tx-constraints
-      , plutus-script-utils
-      , plutus-tx-plugin
-      , plutus-tx
-      , text
-      , serialise
-      , aeson
-      , credit-scoring
-      , tasty
-      , tasty-quickcheck
-      , plutus-simple-model
-      , QuickCheck
-      , mtl
-
-test-suite test-lending
-    main-is:            PTLendingContract.hs
     type:               exitcode-stdio-1.0
     hs-source-dirs:     test
     default-language:   Haskell2010

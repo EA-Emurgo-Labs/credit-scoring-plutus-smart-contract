@@ -16,7 +16,6 @@
 module GeneralParams
   (
     OperatorParams(..),
-    LendingParams(..),
     NFTInfo(..)
   )
 where
@@ -42,34 +41,6 @@ data OperatorParams = OperatorParams
 
 PlutusTx.makeLift ''OperatorParams
 PlutusTx.makeIsDataIndexed ''OperatorParams [('OperatorParams,0)]
-
-{-
-These parameters will be used in Lending contract:
-+ operatorToken': only operator is able to claim back all the money from Lending contract.
-+ scoringNFT: if user want to borrow money from Lending contract, they have to own a Scoring NFT.
-+ lendingPackagesInfo: all the information about lending packages.
--}
-data LendingParams = LendingParams
-  {
-    operatorToken'      :: Value.AssetClass,
-    scoringNFT          :: Value.AssetClass,
-
-    {-
-      Each lending package includes:
-      + packageNumber     :: Integer, -- start from index 1
-      + fromPoint         :: Integer, -- min point for this package
-      + toPoint           :: Integer, -- max point for this package
-      + lendingAmount     :: Integer, -- amount that user can borrow
-      --------------------------------------------------------------------
-      + lendingInterest   :: Integer, -- will implement this feature later
-      + deadlineToPayback :: Integer  -- will implement this feature later
-    -}
-    lendingPackagesInfo :: [(Integer, Integer, Integer, Integer)]
-  }
-  deriving(Show)
-
-PlutusTx.makeLift ''LendingParams
-PlutusTx.makeIsDataIndexed ''LendingParams [('LendingParams,0)]
 
 {-
 These are information about the Scoring NFT:
