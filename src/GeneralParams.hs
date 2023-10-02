@@ -51,9 +51,11 @@ from Lending contract.
 -}
 data NFTInfo = NFTInfo 
   {
-    score          :: Integer,
-    owner          :: PlutusV2.PubKeyHash,
-    lendingPackage :: Integer
+    owner        :: PlutusV2.PubKeyHash,
+    onchainData  :: [Integer],
+    baseScore    :: Integer,
+    lendingScore :: Integer,
+    lendingFlag  :: Integer
   }
   deriving(Show)
 

@@ -161,7 +161,7 @@ testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore
   -- Create some variables.
   let normalVal     = adaValue 100 
       operatorVal   = emurgoValue
-      valScoringNFT = singleton (CS.mintingContractSymbol operatorParams) nameScoringNFT mintedAmount
+      valScoringNFT = singleton (CS.symbolNFT operatorParams) nameScoringNFT mintedAmount
       creator       = if isOperator then operator else notOperator
  
   -- Get user spent of the operator.
@@ -187,6 +187,6 @@ testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore
   if shouldMint then do
     let [(_, oOut)] = utxos
         [(cs, tn, amount)] = flattenValue $ txOutValue oOut
-    return $ cs == CS.mintingContractSymbol operatorParams && tn == nameScoringNFT && amount == 1
+    return $ cs == CS.symbolNFT operatorParams && tn == nameScoringNFT && amount == 1
   else
     return $ length utxos == 0

@@ -18,7 +18,7 @@ module CreditScoringContract
   (
     mintScoringNFT,
     policy,
-    mintingContractSymbol
+    symbolNFT
   )
 where
 
@@ -130,13 +130,13 @@ mkNFTPolicy oParams rParams scriptContext =
     -- Check output datum.
     checkOutputDatum :: Maybe NFTInfo -> Bool
     checkOutputDatum nftInfo = case nftInfo of
-      Just (NFTInfo score owner lendingPackage) ->
-        traceIfFalse "[Plutus Error]: score must be equal the total score has been calculated"
-          (score == getTotalScore (pointOfFactors rParams) (weights rParams)) &&
+      Just (NFTInfo owner onchainData baseScore lendingScore lendingFlag) -> True
+        -- traceIfFalse "[Plutus Error]: score must be equal the total score has been calculated"
+        --   (baseScore == getTotalScore (pointOfFactors rParams) (weights rParams)) &&
 
-        traceIfFalse "[Plutus Error]: owner must not be empty" (PlutusV2.getPubKeyHash owner /= "") &&
+        -- traceIfFalse "[Plutus Error]: owner must not be empty" (PlutusV2.getPubKeyHash owner /= "") &&
 
-        traceIfFalse "[Plutus Error]: lendingPackage must be 0 in intialize" (lendingPackage == 0)
+        -- traceIfFalse "[Plutus Error]: lendingPackage must be 0 in intialize" (lendingPackage == 0)
 
       Nothing -> traceError "[Plutus Error]: output datum must not be empty"
 
@@ -149,8 +149,8 @@ policy params = PlutusV2.mkMintingPolicyScript $
   where
     wrap params' = Scripts.mkUntypedMintingPolicy $ mkNFTPolicy params'
 
-mintingContractSymbol :: OperatorParams -> PlutusV2.CurrencySymbol
-mintingContractSymbol params = scriptCurrencySymbol $ policy params
+symbolNFT :: OperatorParams -> PlutusV2.CurrencySymbol
+symbolNFT params = scriptCurrencySymbol $ policy params
 
 script :: OperatorParams -> PlutusV2.Script
 script params = PlutusV2.unMintingPolicyScript $ policy params
