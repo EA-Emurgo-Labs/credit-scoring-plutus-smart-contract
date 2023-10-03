@@ -8,7 +8,8 @@ License:            Apache-2.0
 
 library
   hs-source-dirs:      src
-  exposed-modules:     CreditScoringContract
+  exposed-modules:     MintScoringToken
+                     , ManageScoringToken
                      , GeneralParams
                      , Utility
   build-depends:       aeson
@@ -35,7 +36,7 @@ library
                        -fplugin-opt PlutusTx.Plugin:defer-errors
 
 executable credit-scoring
-  main-is:            CreditScoringApp.hs
+  main-is:            Main.hs
   hs-source-dirs:     app
   default-language:   Haskell2010
   ghc-options:        -Wall -fobject-code -fno-ignore-interface-pragmas

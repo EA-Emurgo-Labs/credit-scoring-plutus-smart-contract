@@ -15,16 +15,17 @@
 
 module GeneralParams
   (
-    OperatorParams(..),
-    NFTInfo(..)
+    MintParams(..),
+    ManageParams(..),
+    TokenInfo(..)
   )
 where
 
-import qualified Plutus.Script.Utils.Value            as Value
-import qualified Plutus.V2.Ledger.Api                 as PlutusV2
+import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V2.Ledger.Api      as PlutusV2
 import qualified PlutusTx
-import           PlutusTx.Prelude                     as P hiding ((.))
-import           Prelude                              (Show (..))
+import           PlutusTx.Prelude          as P hiding ((.))
+import           Prelude                   (Show (..))
 
 {-
 These parameters will be used in Credit Scoring contract:
@@ -32,15 +33,25 @@ These parameters will be used in Credit Scoring contract:
 + minScoreToMintNFT: there is a threshold (a minimum score) to check if a user is able to receive the
 Scoring NFT or not.
 -}
-data OperatorParams = OperatorParams
+data MintParams = MintParams
   {
-    operatorToken     :: Value.AssetClass,
-    minScoreToMintNFT :: Integer
+    operatorToken              :: Value.AssetClass,
+    minScoreToMintScoringToken :: Integer
   }
   deriving(Show)
 
-PlutusTx.makeLift ''OperatorParams
-PlutusTx.makeIsDataIndexed ''OperatorParams [('OperatorParams,0)]
+PlutusTx.makeLift ''MintParams
+PlutusTx.makeIsDataIndexed ''MintParams [('MintParams,0)]
+
+data ManageParams = ManageParams
+  {
+    operatorToken'           :: Value.AssetClass,
+    minusPointsIfLatePayment :: Integer
+  }
+  deriving(Show)
+
+PlutusTx.makeLift ''ManageParams
+PlutusTx.makeIsDataIndexed ''ManageParams [('ManageParams,0)]
 
 {-
 These are information about the Scoring NFT:
@@ -49,15 +60,16 @@ These are information about the Scoring NFT:
 + lendingPackage: it will be 0 in initialize, and will be updated with the packageNumber that user borrowed
 from Lending contract.
 -}
-data NFTInfo = NFTInfo 
+data TokenInfo = TokenInfo 
   {
-    owner        :: PlutusV2.PubKeyHash,
-    onchainData  :: [Integer],
-    baseScore    :: Integer,
-    lendingScore :: Integer,
-    lendingFlag  :: Integer
+    ownerPKH       :: PlutusV2.PubKeyHash,
+    ownerSH        :: PlutusV2.ScriptHash,
+    baseScore      :: Integer,
+    lendingScore   :: Integer,
+    lendingPackage :: Integer,
+    latePayment    :: Bool
   }
   deriving(Show)
 
-PlutusTx.makeLift ''NFTInfo
-PlutusTx.makeIsDataIndexed ''NFTInfo [('NFTInfo,0)]
+PlutusTx.makeLift ''TokenInfo
+PlutusTx.makeIsDataIndexed ''TokenInfo [('TokenInfo,0)]

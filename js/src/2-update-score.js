@@ -35,12 +35,12 @@ const API = new Blockfrost.BlockFrostAPI({
   const mintedNFTName = "ScoringToken";
 
   // Minted NFT's information
-  const information = {
-    "description": "This is a Scoring NFT of Emurgo Labs",
-    "name": mintedNFTName,
-    "id": "1",
-    "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
-  };
+  // const information = {
+  //   "description": "This is a Scoring NFT of Emurgo Labs",
+  //   "name": mintedNFTName,
+  //   "id": "1",
+  //   "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
+  // };
 
 
   // Private key of operator address
@@ -64,7 +64,7 @@ const API = new Blockfrost.BlockFrostAPI({
   // const userAddress = "addr_test1vzym9zs9h9w6yexdxys5kvehn7jw2yee3yy64t65vfg4hqswdtwh9";
 
   // User data (to calculate the score)
-  const age = 30;
+  const age = 50;
   const salary = 30000;
 
   //-------------------------------------------------------------------------
@@ -99,6 +99,14 @@ const API = new Blockfrost.BlockFrostAPI({
   const salaryWeight = 50;
 
   //-------------------------------------------------------------------------
+  const contractScript = {
+    type: "PlutusV2",
+    script: CreditScoringContract.cborHex,
+  };
+  const contractAddress = api.utils.validatorToAddress(
+    contractScript
+  );
+  console.log('contractAddress: ', contractAddress);
 
   const pointOfFactors = [BigInt(agePoint), BigInt(salaryPoint)];
 
@@ -107,7 +115,7 @@ const API = new Blockfrost.BlockFrostAPI({
   // Redeemer
 
   const redeemer = lucid.Data.to(
-    new lucid.Constr(0, [pointOfFactors, weights])
+    new lucid.Constr(1, [pointOfFactors, weights])
   );  
 
   // Datum 
@@ -134,6 +142,9 @@ const API = new Blockfrost.BlockFrostAPI({
   const operatorAddress = await wallet.wallet.address();
   console.log('operatorAddress: ', operatorAddress);
 
+  const contractUtxo = await api.utxosAt(contractAddress);
+  console.log('contractUtxo: ', contractUtxo);
+
   const utxos = await api.utxosAt(operatorAddress);
   console.log('utxos: ', utxos);
 
@@ -157,34 +168,27 @@ const API = new Blockfrost.BlockFrostAPI({
 
   const unit = policyId + lucid.fromText(mintedNFTName);
   
-  const infoObject = {};
-  infoObject[mintedNFTName] = information;
+  // const infoObject = {};
+  // infoObject[mintedNFTName] = information;
   // console.log('infoObject: ', infoObject);
 
-  const label = "721";
-  const metadataNFT = {};
-  metadataNFT[policyId] = infoObject;
+  // const label = "721";
+  // const metadataNFT = {};
+  // metadataNFT[policyId] = infoObject;
   // console.log('metadata: ', metadataNFT);
   
   const datum = lucid.Data.to(
     new lucid.Constr(0, [ownerPKH, ownerSH, totalScore, lendingScore, lendingFlag])
   );
 
-  const contractScript = {
-    type: "PlutusV2",
-    script: CreditScoringContract.cborHex,
-  };
-  const contractAddress = api.utils.validatorToAddress(
-    contractScript
-  );
-  console.log('contractAddress: ', contractAddress);
+  
 
   const tx = await api.newTx()
   // .collectFrom([...utxos])
-  .collectFrom([operatorUtxo])
-  .mintAssets({ [unit]: 1n }, redeemer)
-  .attachMintingPolicy(mintingPolicy)
-  .attachMetadata(label, metadataNFT)
+  .collectFrom([operatorUtxo, ...contractUtxo], redeemer)
+  // .mintAssets({ [unit]: 1n }, redeemer)
+  .attachSpendingValidator(mintingPolicy)
+  // .attachMetadata(label, metadataNFT)
   .payToContract(contractAddress, { inline: datum }, { [unit]: 1n })
   .complete();
 
