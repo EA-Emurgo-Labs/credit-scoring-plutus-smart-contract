@@ -192,10 +192,17 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('manageContractAddress: ', manageContractAddress);
 
+  const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+  const refUtxos = await api.utxosAt(addressHasRefScripts);
+  const refMintScript = refUtxos.find(x => 
+    x.txHash == "ba902b9c66653ef2c1453c8f3ecdbf2c2fa9810e797e55b27f747be31334866d"
+  );
+  console.log('refMintScript: ', refMintScript);
+
   const tx = await api.newTx()
+  .readFrom([refMintScript])
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
-  .attachMintingPolicy(mintingPolicy)
   .attachMetadata(label, metadataToken)
   .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();

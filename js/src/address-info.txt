@@ -9,3 +9,10 @@ Index: 1
 UserB address: addr_test1qr8vlktea6sknauuru4x4fk9z7uh52as4lxtq7fhc9k5kkuvttujnhpr7l7dj5fz8tu6h85xk0uz60ms75jhxjg2n6fsuhj372
 Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
 Index: 2
+
+Address has two reference scripts:
+addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r
+
+Reference script of Minting contract: ba902b9c66653ef2c1453c8f3ecdbf2c2fa9810e797e55b27f747be31334866d
+
+Reference script of Manager contract: a2e6fd9df4a9e85f163d286f755a0d471fab8941b3605e5a340f6a77a2181216

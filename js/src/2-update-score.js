@@ -210,6 +210,13 @@ const API = new Blockfrost.BlockFrostAPI({
     new lucid.Constr(0, [ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback])
   );
 
+  const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+  const refUtxos = await api.utxosAt(addressHasRefScripts);
+  const refManageScript = refUtxos.find(x => 
+    x.txHash == "a2e6fd9df4a9e85f163d286f755a0d471fab8941b3605e5a340f6a77a2181216"
+  );
+  console.log('refManageScript: ', refManageScript);
+
   const currentSlot = await api.currentSlot();
   console.log('currentSlot: ', currentSlot);
 
@@ -220,8 +227,8 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('validTo: ', validTo);
 
   const tx = await api.newTx()
+  .readFrom([refManageScript])
   .collectFrom([operatorUtxo, mainUtxo], redeemer)
-  .attachSpendingValidator(manageContractScript)
   .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
   .validFrom(validFrom)
   .validTo(validTo)
