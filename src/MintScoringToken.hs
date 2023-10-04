@@ -31,6 +31,7 @@ import qualified Ledger.Typed.Scripts            as Scripts
 import qualified Plutus.Script.Utils.Value       as Value
 import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
+import qualified Plutus.V1.Ledger.Address        as Address
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))
@@ -70,8 +71,11 @@ mkTokenPolicy mParams rParams scriptContext =
     traceIfFalse "[Plutus Error]: minted amount must be one at a time"
       checkMintedAmount &&
 
-    traceIfFalse "[Plutus Error]: your score is not good enough to receive the Scoring Token"
+    traceIfFalse "[Plutus Error]: user's score is not good enough to receive the Scoring Token"
       checkMinScoreToMintScoringToken &&
+
+    traceIfFalse "[Plutus Error]: the Scoring Token must be sent to ManageScoringToken contract only"
+      (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
 
     traceIfFalse "[Plutus Error]: output datum is not correct"
       (checkOutputDatum $ parseOutputDatum $ getTxOutHasScoringToken)
@@ -108,7 +112,7 @@ mkTokenPolicy mParams rParams scriptContext =
       [(_, _, amount)] -> amount == 1
       _                -> False
 
-    -- Check if the user's base score is good enough to mint Scoring Token.
+    -- Check if the user's base score is good enough to receive the Scoring Token.
     checkMinScoreToMintScoringToken :: Bool
     checkMinScoreToMintScoringToken =
       getBaseScore (pointsOfFactors rParams) (weights rParams) >= minScoreToMintScoringToken mParams

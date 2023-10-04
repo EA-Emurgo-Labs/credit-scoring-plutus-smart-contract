@@ -23,40 +23,26 @@ import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
 import           MintScoringToken
-import           ManageScoringToken
+-- import           ManageScoringToken
 import           GeneralParams
 import           Utility
 
 main :: IO ()
 main = do
-  -- Get the info of operator token, min score, minus points (in case of late payment in lending)
-  -- to mint and manage the Scoring Token.
-  [tokenPolicy, tokenName, minScore, minusPoints] <- getArgs
+  -- Get the info of operator token, min score to mint the Scoring Token
+  [tokenPolicy, tokenName, minScore, managerContract'] <- getArgs
 
   -- Construct params for contract MintScoringToken.
   let mintParams = MintParams {
     operatorToken = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
-    minScoreToMintScoringToken = Haskell.read minScore :: Integer
+    minScoreToMintScoringToken = Haskell.read minScore :: Integer,
+    managerContract = toValidatorHash managerContract'
   }
 
-  let mintContract = "built-contracts/mint-score.json"
+  let contract = "built-contracts/mint-score.json"
   
   -- Built the plutus script for contract MintScoringToken.
-  mintResult <- writeFileTextEnvelope mintContract Nothing $ buildMintingContract mintParams
-  case mintResult of
+  result <- writeFileTextEnvelope contract Nothing $ buildMintingContract mintParams
+  case result of
     Left err -> Haskell.print $ displayError err
-    Right () -> Haskell.putStrLn $ "Built contract MintScoringToken successfully at: " ++ mintContract
-
-  -- Construct params for contract ManageScoringToken.
-  let manageParams = ManageParams {
-    operatorToken' = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
-    minusPointsIfLatePayment = Haskell.read minusPoints :: Integer
-  }
-
-  let manageContract = "built-contracts/manage-score.json"
-  
-  -- Built the plutus script for contract ManageScoringToken.
-  manageResult <- writeFileTextEnvelope manageContract Nothing $ buildManagerContract manageParams
-  case manageResult of
-    Left err -> Haskell.print $ displayError err
-    Right () -> Haskell.putStrLn $ "Built contract ManageScoringToken successfully at: " ++ manageContract
+    Right () -> Haskell.putStrLn $ "Built contract MintScoringToken successfully at: " ++ contract

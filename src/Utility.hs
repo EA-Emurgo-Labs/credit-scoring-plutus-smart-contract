@@ -17,10 +17,7 @@ module Utility
   (
     getBaseScore,
     toCurrencySymbol,
-    -- first,
-    -- second,
-    -- third,
-    -- fourth
+    toValidatorHash
   )
 where
 
@@ -32,7 +29,7 @@ import           PlutusTx.Prelude           as P hiding ((.))
 import           Prelude                    ((.))
 import qualified Prelude                    as Haskell
 
--- Calculate the user's base score based on factors and weights.
+-- Calculate the base score based on points of factors and weights.
 getBaseScore :: [Integer] -> [Integer] -> Integer
 getBaseScore [] []         = 0
 getBaseScore _  []         = 0
@@ -46,18 +43,8 @@ toCurrencySymbol str = case (JSON.tryDecode . T.pack) str of
   Left  _ -> (Value.currencySymbol . fromBuiltin) emptyByteString
   Right b -> Value.currencySymbol b
 
--- -- Get first field from tuple.
--- first :: (Integer, Integer, Integer, Integer) -> Integer
--- first (x, _, _, _)  = x
-
--- -- Get second field from tuple.
--- second :: (Integer, Integer, Integer, Integer) -> Integer
--- second (_, x, _, _) = x
-
--- -- Get third field from tuple.
--- third :: (Integer, Integer, Integer, Integer) -> Integer
--- third (_, _, x, _)  = x
-
--- -- Get fourth field from tuple.
--- fourth :: (Integer, Integer, Integer, Integer) -> Integer
--- fourth (_, _, _, x) = x
+-- This function is to convert from string to validatior hash (of contract address)
+toValidatorHash :: Haskell.String -> PlutusV2.ValidatorHash
+toValidatorHash str = case JSON.tryDecode $ T.pack str of
+  Left  _ -> PlutusV2.ValidatorHash emptyByteString
+  Right b -> PlutusV2.ValidatorHash $ toBuiltin b

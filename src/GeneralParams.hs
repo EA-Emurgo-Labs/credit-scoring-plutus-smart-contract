@@ -28,21 +28,28 @@ import           PlutusTx.Prelude          as P hiding ((.))
 import           Prelude                   (Show (..))
 
 {-
-These parameters will be used in Credit Scoring contract:
-+ operatorToken: only operator is able to mint a new Scoring NFT (attach the score in datum) for user.
-+ minScoreToMintNFT: there is a threshold (a minimum score) to check if a user is able to receive the
-Scoring NFT or not.
+These parameters will be used in MintScoringToken contract:
++ operatorToken: only operator is able to mint a new Scoring Token.
++ minScoreToMintScoringToken: there is a threshold (a minimum score) to check if a user is able to receive the
+Scoring Token or not.
++ managerContract: after minting, the Scoring Token will be sent to the ManageScoringToken contract only.
 -}
 data MintParams = MintParams
   {
     operatorToken              :: Value.AssetClass,
-    minScoreToMintScoringToken :: Integer
+    minScoreToMintScoringToken :: Integer,
+    managerContract            :: PlutusV2.ValidatorHash
   }
   deriving(Show)
 
 PlutusTx.makeLift ''MintParams
 PlutusTx.makeIsDataIndexed ''MintParams [('MintParams,0)]
 
+{-
+These parameters will be used in ManageScoringToken contract:
++ operatorToken: only operator is able to update new score for the Scoring Token.
++ minusPointsIfLatePayment:
+-}
 data ManageParams = ManageParams
   {
     operatorToken'           :: Value.AssetClass,
@@ -54,11 +61,13 @@ PlutusTx.makeLift ''ManageParams
 PlutusTx.makeIsDataIndexed ''ManageParams [('ManageParams,0)]
 
 {-
-These are information about the Scoring NFT:
-+ score: it will be calculated based on both onchain and offchain data for each user.
-+ owner: the Scoring NFT's owner.
-+ lendingPackage: it will be 0 in initialize, and will be updated with the packageNumber that user borrowed
-from Lending contract.
+These are information about the Scoring Token:
++ ownerPKH:
++ ownerSH:
++ baseScore:
++ lendingScore:
++ lendingPackage:
++ latePayment:
 -}
 data TokenInfo = TokenInfo 
   {
