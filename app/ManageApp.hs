@@ -22,7 +22,6 @@ import           PlutusTx.Prelude           as P hiding ((.))
 import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
--- import           MintScoringToken
 import           ManageScoringToken
 import           GeneralParams
 import           Utility

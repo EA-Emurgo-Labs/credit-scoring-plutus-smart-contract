@@ -48,7 +48,7 @@ PlutusTx.makeIsDataIndexed ''MintParams [('MintParams,0)]
 {-
 These parameters will be used in ManageScoringToken contract:
 + operatorToken: only operator is able to update new score for the Scoring Token.
-+ minusPointsIfLatePayment:
++ minusPointsIfLatePayment: the lending score will be decreased if user has late payment in lending.
 -}
 data ManageParams = ManageParams
   {
@@ -62,12 +62,12 @@ PlutusTx.makeIsDataIndexed ''ManageParams [('ManageParams,0)]
 
 {-
 These are information about the Scoring Token:
-+ ownerPKH:
-+ ownerSH:
-+ baseScore:
-+ lendingScore:
-+ lendingPackage:
-+ latePayment:
++ ownerPKH: owner's pubkey hash (address = pubkey hash + script hash).
++ ownerSH: owner's script hash (address = pubkey hash + script hash).
++ baseScore: this score will be re-calculated at the beginning of each month.
++ lendingScore: this score will be updated based on lending history.
++ lendingPackage: it is used to mark the package that user is borrowing from Lending contract.
++ deadlinePayback: it is used to check whether user has a late payment or not.
 -}
 data TokenInfo = TokenInfo 
   {

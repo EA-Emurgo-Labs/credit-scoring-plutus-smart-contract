@@ -23,13 +23,13 @@ import           Prelude                    (IO, (.))
 import qualified Prelude                    as Haskell
 import           System.Environment
 import           MintScoringToken
--- import           ManageScoringToken
 import           GeneralParams
 import           Utility
 
 main :: IO ()
 main = do
   -- Get the info of operator token, min score to mint the Scoring Token
+  -- After minting, the Scoring Token will be sent to the ManageScoringToken contract (manager contract) only.
   [tokenPolicy, tokenName, minScore, managerContract'] <- getArgs
 
   -- Construct params for contract MintScoringToken.

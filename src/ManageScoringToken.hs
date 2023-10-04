@@ -32,7 +32,6 @@ import qualified Ledger.Typed.Scripts                 as Scripts
 import qualified Plutus.Script.Utils.V2.Scripts       as PSU.V2
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as PlutusV2
 import qualified Plutus.Script.Utils.Value            as Value
--- import qualified Plutus.V1.Ledger.Address             as Address
 import qualified Plutus.V1.Ledger.Interval            as Interval
 import qualified Plutus.V2.Ledger.Api                 as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts            as PlutusV2
@@ -54,10 +53,10 @@ data RedeemerParams = RedeemerParams
     pointsOfFactors :: [Integer],
 
     {-
-      + Weight 0: weight of address balance (25%)
-      + Weight 1: weight of staking reward (25%)
-      + Weight 2: weight of payment frequency per month (25%)
-      + Weight 3: weight of monthly payment (25%)
+      + Weight 0: weight of address balance
+      + Weight 1: weight of staking reward
+      + Weight 2: weight of payment frequency per month
+      + Weight 3: weight of monthly payment
     -}     
     weights :: [Integer]
   }
@@ -122,19 +121,8 @@ mkValidator mParams tokenInfo rParams scriptContext =
     theScoringTokenInInput :: PlutusV2.Value
     theScoringTokenInInput = PlutusV2.txOutValue mainInput
 
-    -- -- Get the output has been sent to the Revenue Contract
-    -- getOutputToRevenueContract :: PlutusV2.TxOut
-    -- getOutputToRevenueContract = 
-    --   case find (
-    --     \x -> (PlutusV2.txOutAddress x == Address.scriptHashAddress (revenueContract mParams))
-    --   ) allTxOut of
-    --     Nothing -> traceError "[Plutus Error]: cannot find the output to Revenue Contract"
-    --     Just i  -> i
-
     {-
-    This function is to check which address that the NFT has been sent to in outputs
-    In case of transferring, the NFT must be sent to the Manager Contract address only (to update NFT's owner and datum).
-    In case of depositting, the NFT must be sent to the Marketplace Contract address only.
+    This function is to check which address that the Scoring Token has been sent to in outputs.
     -}
     checkScoringTokenInOutput :: PlutusV2.Address -> Bool
     checkScoringTokenInOutput address =
@@ -146,7 +134,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Just _  -> True
 
     {-
-    This function will check whether the NFT is in the outputs or not.
+    This function will check whether the Scoring Token is in the outputs or not.
     If yes, the txout will be used to parse and check whether the output datum is correct or not.
     -}
     getTxOutHasScoringToken :: PlutusV2.TxOut
@@ -155,7 +143,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> traceError "[Plutus Error]: cannot find the Scoring Token in output"
         Just i  -> i
 
-    -- Parse output datum to the NFTDatumParams format
+    -- Parse output datum to the TokenInfo format
     parseOutputDatumInTxOut :: PlutusV2.TxOut -> Maybe TokenInfo
     parseOutputDatumInTxOut txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing

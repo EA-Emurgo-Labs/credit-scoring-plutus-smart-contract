@@ -50,10 +50,10 @@ data RedeemerParams = RedeemerParams
     pointsOfFactors :: [Integer],
 
     {-
-      + Weight 0: weight of address balance (25%)
-      + Weight 1: weight of staking reward (25%)
-      + Weight 2: weight of payment frequency per month (25%)
-      + Weight 3: weight of monthly payment (25%)
+      + Weight 0: weight of address balance
+      + Weight 1: weight of staking reward
+      + Weight 2: weight of payment frequency per month
+      + Weight 3: weight of monthly payment
     -}     
     weights :: [Integer]
   }
