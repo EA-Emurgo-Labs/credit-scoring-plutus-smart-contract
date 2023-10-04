@@ -32,10 +32,10 @@ const API = new Blockfrost.BlockFrostAPI({
   // The owner of Scoring Token
   const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
 
-  // Minted NFT's name
+  // Token's name
   const tokenName = "ScoringToken";
 
-  // Minted NFT's information
+  // Token's info
   const information = {
     "description": "This is a Scoring Token of Emurgo Labs",
     "name": tokenName,
@@ -45,40 +45,83 @@ const API = new Blockfrost.BlockFrostAPI({
 
   //-------------------------------------------------------------------------
 
-  // Data Model
+  // Collect user's data
 
-  // Define points
-  // let agePoint = 0;
-  // if (age >= 18 && age <= 25) {
-  //   agePoint = 10;
-  // } else if (age >= 26 && age <= 40) {
-  //   agePoint = 25;
-  // } else if (age >= 41 && age <= 65) {
-  //   agePoint = 38;
-  // } else if (age >= 66) {
-  //   agePoint = 43
-  // }
-
-  // let salaryPoint = 0;
-  // if (salary > 0 && salary <= 20000) {
-  //   salaryPoint = -10;
-  // } else if (salary > 20000 && salary <= 40000) {
-  //   salaryPoint = 16;
-  // } else if (salary > 4000 && salary <= 70000) {
-  //   salaryPoint = 28;
-  // } else if (salary > 70000) {
-  //   salaryPoint = 45
-  // }
-
-  // Define weights
-  // const ageWeight = 50;
-  // const salaryWeight = 50;
+  const addressBalance = 100;
+  const stakingReward = 1;
+  const numberTxs = 5;
+  const totalSent = 200;
 
   //-------------------------------------------------------------------------
 
-  const pointsOfFactors = [10n, 10n];
+  // Data Model
 
-  const weights = [50n, 50n];
+  // Define points
+
+  let pointsOfFactor0 = 0n;
+  if (addressBalance >= 0 && addressBalance < 100) {
+    pointsOfFactor0 = 0n;
+  } else if (addressBalance >= 100 && addressBalance < 1000) {
+    pointsOfFactor0 = 10n;
+  } else if (addressBalance >= 1000 && addressBalance < 10000) {
+    pointsOfFactor0 = 20n;
+  } else if (addressBalance >= 10000 && addressBalance < 100000) {
+    pointsOfFactor0 = 30n;
+  } else if (addressBalance > 100000) {
+    pointsOfFactor0 = 50n;
+  }
+
+  let pointsOfFactor1 = 0n;
+  if (stakingReward >= 0 && stakingReward < 1) {
+    pointsOfFactor1 = 0n;
+  } else if (stakingReward >= 1 && stakingReward < 10) {
+    pointsOfFactor1 = 10n;
+  } else if (stakingReward >= 10 && stakingReward < 100) {
+    pointsOfFactor1 = 20n;
+  } else if (stakingReward >= 100 && stakingReward < 1000) {
+    pointsOfFactor1 = 30n;
+  } else if (stakingReward > 1000) {
+    pointsOfFactor1 = 50n;
+  }
+
+  let pointsOfFactor2 = 0n;
+  if (numberTxs > 0 && numberTxs < 10) {
+    pointsOfFactor2 = 10n;
+  } else if (numberTxs >= 10 && numberTxs < 50) {
+    pointsOfFactor2 = 50n;
+  } else if (numberTxs >= 50 && numberTxs < 100) {
+    pointsOfFactor2 = 30n;
+  } else if (numberTxs >= 100 && numberTxs < 1000) {
+    pointsOfFactor2 = 20n;
+  } else if (numberTxs == 0 || numberTxs >= 1000) {
+    pointsOfFactor2 = 0n;
+  }
+
+  let pointsOfFactor3 = 0;
+  if (totalSent >= 0 && totalSent < 100) {
+    pointsOfFactor3 = 0n;
+  } else if (totalSent >= 100 && totalSent < 1000) {
+    pointsOfFactor3 = 10n;
+  } else if (totalSent >= 1000 && totalSent < 10000) {
+    pointsOfFactor3 = 20n;
+  } else if (totalSent >= 10000 && totalSent < 100000) {
+    pointsOfFactor3 = 30n;
+  } else if (totalSent > 100000) {
+    pointsOfFactor3 = 50n;
+  }
+
+  // Define weights
+
+  const weightOfFactor0 = 25n;
+  const weightOfFactor1 = 25n;
+  const weightOfFactor2 = 25n;
+  const weightOfFactor3 = 25n;
+
+  //-------------------------------------------------------------------------
+
+  const pointsOfFactors = [pointsOfFactor0, pointsOfFactor1, pointsOfFactor2, pointsOfFactor3];
+
+  const weights = [weightOfFactor0, weightOfFactor1, weightOfFactor2, weightOfFactor3];
 
   // Redeemer
   const redeemer = lucid.Data.to(
@@ -91,10 +134,8 @@ const API = new Blockfrost.BlockFrostAPI({
     baseScore += pointsOfFactors[i] * weights[i];
   }
   console.log(`baseScore: ${baseScore}`);
-  // baseScore = 3000n;
   const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
   const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
-  // const owner = "";
   const lendingScore = 0n;
   const lendingPackage = 0n;
   const deadlinePayback = 0n;
@@ -129,18 +170,14 @@ const API = new Blockfrost.BlockFrostAPI({
   const policyId = api.utils.mintingPolicyToId(
     mintingPolicy
   );
-  // console.log('policyId: ', policyId);
 
   const unit = policyId + lucid.fromText(tokenName);
-  
+
   const infoObject = {};
   infoObject[tokenName] = information;
-  // console.log('infoObject: ', infoObject);
-
   const label = "721";
   const metadataToken = {};
   metadataToken[policyId] = infoObject;
-  // console.log('metadata: ', metadataNFT);
   
   const datum = lucid.Data.to(
     new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingPackage, deadlinePayback])
@@ -156,13 +193,10 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('manageContractAddress: ', manageContractAddress);
 
   const tx = await api.newTx()
-  // .collectFrom([...utxos])
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
   .attachMintingPolicy(mintingPolicy)
   .attachMetadata(label, metadataToken)
-  // .payToContract(userAddress, { inline: datum }, { [unit]: 1n })
-  // .payToContract(manageContractAddress, { inline: lucid.Data.void() }, { [unit]: 1n })
   .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();
 

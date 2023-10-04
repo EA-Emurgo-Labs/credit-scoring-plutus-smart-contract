@@ -28,33 +28,104 @@ const API = new Blockfrost.BlockFrostAPI({
   // Operator token
   const operatorId = 'c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f124d6f6f6e7374616b65546573746e657431';
 
+  // Address to update score
   const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
+
+  //-------------------------------------------------------------------------
+
+  // Collect user's data
+
+  const addressBalance = 1000;
+  const stakingReward = 1;
+  const numberTxs = 5;
+  const totalSent = 200;
 
   //-------------------------------------------------------------------------
 
   // Data Model
 
+  // Define points
+
+  let pointsOfFactor0 = 0n;
+  if (addressBalance >= 0 && addressBalance < 100) {
+    pointsOfFactor0 = 0n;
+  } else if (addressBalance >= 100 && addressBalance < 1000) {
+    pointsOfFactor0 = 10n;
+  } else if (addressBalance >= 1000 && addressBalance < 10000) {
+    pointsOfFactor0 = 20n;
+  } else if (addressBalance >= 10000 && addressBalance < 100000) {
+    pointsOfFactor0 = 30n;
+  } else if (addressBalance > 100000) {
+    pointsOfFactor0 = 50n;
+  }
+
+  let pointsOfFactor1 = 0n;
+  if (stakingReward >= 0 && stakingReward < 1) {
+    pointsOfFactor1 = 0n;
+  } else if (stakingReward >= 1 && stakingReward < 10) {
+    pointsOfFactor1 = 10n;
+  } else if (stakingReward >= 10 && stakingReward < 100) {
+    pointsOfFactor1 = 20n;
+  } else if (stakingReward >= 100 && stakingReward < 1000) {
+    pointsOfFactor1 = 30n;
+  } else if (stakingReward > 1000) {
+    pointsOfFactor1 = 50n;
+  }
+
+  let pointsOfFactor2 = 0n;
+  if (numberTxs > 0 && numberTxs < 10) {
+    pointsOfFactor2 = 10n;
+  } else if (numberTxs >= 10 && numberTxs < 50) {
+    pointsOfFactor2 = 50n;
+  } else if (numberTxs >= 50 && numberTxs < 100) {
+    pointsOfFactor2 = 30n;
+  } else if (numberTxs >= 100 && numberTxs < 1000) {
+    pointsOfFactor2 = 20n;
+  } else if (numberTxs == 0 || numberTxs >= 1000) {
+    pointsOfFactor2 = 0n;
+  }
+
+  let pointsOfFactor3 = 0;
+  if (totalSent >= 0 && totalSent < 100) {
+    pointsOfFactor3 = 0n;
+  } else if (totalSent >= 100 && totalSent < 1000) {
+    pointsOfFactor3 = 10n;
+  } else if (totalSent >= 1000 && totalSent < 10000) {
+    pointsOfFactor3 = 20n;
+  } else if (totalSent >= 10000 && totalSent < 100000) {
+    pointsOfFactor3 = 30n;
+  } else if (totalSent > 100000) {
+    pointsOfFactor3 = 50n;
+  }
+
+  // Define weights
+
+  const weightOfFactor0 = 25n;
+  const weightOfFactor1 = 25n;
+  const weightOfFactor2 = 25n;
+  const weightOfFactor3 = 25n;
+
+  // Constants
+
+  const MINUS_POINTS_IF_LATE_PAYMENT = 10;
+
   //-------------------------------------------------------------------------
 
-  const manageContractScript = {
-    type: "PlutusV2",
-    script: manageContract.cborHex,
-  };
-  const manageContractAddress = api.utils.validatorToAddress(
-    manageContractScript
-  );
-  console.log('manageContractAddress: ', manageContractAddress);
+  const newPointsOfFactors = [pointsOfFactor0, pointsOfFactor1, pointsOfFactor2, pointsOfFactor3];
 
-  const newPointsOfFactors = [20n, 10n];
+  const weights = [weightOfFactor0, weightOfFactor1, weightOfFactor2, weightOfFactor3];
 
-  const weights = [50n, 50n];
+  //-------------------------------------------------------------------------
+
+  const userPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
+  const userSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
 
   // Redeemer
   const redeemer = lucid.Data.to(
     new lucid.Constr(0, [newPointsOfFactors, weights])
   );  
 
-  // Datum 
+  // Calculate the new base score 
   let newBaseScore = 0n;
   for (let i = 0; i < newPointsOfFactors.length; i++) {
     newBaseScore += newPointsOfFactors[i] * weights[i];
@@ -72,9 +143,6 @@ const API = new Blockfrost.BlockFrostAPI({
   const operatorAddress = await wallet.wallet.address();
   console.log('operatorAddress: ', operatorAddress);
 
-  const contractUtxo = await api.utxosAt(manageContractAddress);
-  console.log('contractUtxo: ', contractUtxo[0]);
-
   const utxos = await api.utxosAt(operatorAddress);
   console.log('utxos: ', utxos);
 
@@ -83,44 +151,90 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('operatorUtxo: ', operatorUtxo);
 
-  const txInfo = await API.txsUtxos("84e769c7f999c59575f62709f9fe17e84e299c69a9147d6495be2ca9120d4800");
+  const manageContractScript = {
+    type: "PlutusV2",
+    script: manageContract.cborHex,
+  };
+  const manageContractAddress = api.utils.validatorToAddress(
+    manageContractScript
+  );
+  console.log('manageContractAddress: ', manageContractAddress);
 
-  const unit = txInfo.outputs[0].amount[1].unit;
-  console.log('unit: ', unit);
+  const contractUtxos = await api.utxosAt(manageContractAddress);
+  console.log('contractUtxos: ', contractUtxos);
 
-  const previousDatumHash = txInfo.outputs[0].data_hash;
-  const previousDatum = await API.scriptsDatum(previousDatumHash);
+  let mainUtxo = null;
+  let txid = null;
+  let unit = null;
+  let ownerPKH = null;
+  let ownerSH = null;
+  let lendingScore = null;
+  let lendingPackage = null;
+  let deadlinePayback = null;
+  for (let item of contractUtxos) {
+    let txInfo = await API.txsUtxos(item.txHash);
 
-  // New datum
-  const ownerPKH = previousDatum.json_value.fields[0]["bytes"];
-  const ownerSH = previousDatum.json_value.fields[1]["bytes"];
-  const lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
-  const lendingPackage = BigInt(previousDatum.json_value.fields[4]["int"]);
-  const deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
+    unit = txInfo.outputs[0].amount[1].unit;
+    console.log('unit: ', unit);
 
-  console.log("new datum: ", ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback)
+    let previousDatumHash = txInfo.outputs[0].data_hash;
+    let previousDatum = await API.scriptsDatum(previousDatumHash);
+
+    // New datum
+    ownerPKH = previousDatum.json_value.fields[0]["bytes"];
+    ownerSH = previousDatum.json_value.fields[1]["bytes"];
+
+    if (ownerPKH == userPKH && ownerSH == userSH) {
+      lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
+      lendingPackage = BigInt(previousDatum.json_value.fields[4]["int"]);
+      deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
+      mainUtxo = item;
+      break;
+    }
+  }
+  if (mainUtxo == null) {
+    throw new Error("Cannot find the main utxo to update user's score");
+  }
+  console.log("Main utxo: ", mainUtxo);
+
+  const unixTimeStamp = Math.floor(Date.now());
+  console.log("unixTimeStamp: ", unixTimeStamp);
+
+  if (unixTimeStamp > deadlinePayback) {
+    lendingScore = lendingScore - BigInt(MINUS_POINTS_IF_LATE_PAYMENT);
+  }
+
+  console.log("New datum: ", ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback);
   
   const datum = lucid.Data.to(
     new lucid.Constr(0, [ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback])
   );
 
+  const currentSlot = await api.currentSlot();
+  console.log('currentSlot: ', currentSlot);
+
+  const validFrom = await lucid.slotToBeginUnixTime(currentSlot - 100, lucid.SLOT_CONFIG_NETWORK.Preprod);
+  console.log('validFrom: ', validFrom);
+
+  const validTo = await lucid.slotToBeginUnixTime(currentSlot + 100, lucid.SLOT_CONFIG_NETWORK.Preprod);
+  console.log('validTo: ', validTo);
+
   const tx = await api.newTx()
-  // .collectFrom([...utxos, contractUtxo[0]], redeemer)
-  .collectFrom([operatorUtxo, contractUtxo[0]], redeemer)
+  .collectFrom([operatorUtxo, mainUtxo], redeemer)
   .attachSpendingValidator(manageContractScript)
-  // .payToContract(userAddress, { inline: datum }, { [unit]: 1n })
-  // .payToContract(manageContractAddress, { inline: lucid.Data.void() }, { [unit]: 1n })
   .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
+  .validFrom(validFrom)
+  .validTo(validTo)
   .complete();
 
   const signedTx = await tx.sign().complete();
 
-  // try {
-  //   const txHash = await signedTx.submit();
-  //   console.log('hash: ', txHash);
-  // } catch (error) {
-  //   console.log('error: ', error);
-  // }
+  try {
+    const txHash = await signedTx.submit();
+    console.log('hash: ', txHash);
+  } catch (error) {
+    console.log('error: ', error);
+  }
 })().catch(error => {
   console.log('error: ', error);
 });
