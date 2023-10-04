@@ -33,7 +33,7 @@ import qualified Plutus.Script.Utils.V2.Scripts       as PSU.V2
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as PlutusV2
 import qualified Plutus.Script.Utils.Value            as Value
 -- import qualified Plutus.V1.Ledger.Address             as Address
--- import qualified Plutus.V1.Ledger.Interval            as Interval
+import qualified Plutus.V1.Ledger.Interval            as Interval
 import qualified Plutus.V2.Ledger.Api                 as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts            as PlutusV2
 import qualified PlutusTx
@@ -86,6 +86,10 @@ mkValidator mParams tokenInfo rParams scriptContext =
     -- Get all info about the transaction
     info :: PlutusV2.TxInfo
     info = PlutusV2.scriptContextTxInfo scriptContext
+
+    -- Get the valid time range of this transaction
+    range :: PlutusV2.POSIXTimeRange
+    range = PlutusV2.txInfoValidRange info
 
     -- Get all inputs.
     allTxIn :: [PlutusV2.TxInInfo]
@@ -163,7 +167,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
     -- Check output datum.
     checkOutputDatum :: Maybe TokenInfo -> Bool
     checkOutputDatum outputDatum = case outputDatum of
-      Just (TokenInfo ownerPKH' ownerSH' newBaseScore lendingScore' lendingPackage' latePayment') ->
+      Just (TokenInfo ownerPKH' ownerSH' newBaseScore lendingScore' lendingPackage' deadlinePayback') ->
         traceIfFalse "[Plutus Error]: ownerPKH must not been changed"
           (ownerPKH' == ownerPKH tokenInfo) &&
 
@@ -176,7 +180,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         traceIfFalse "[Plutus Error]: lendingPackage must not been changed"
           (lendingPackage' == lendingPackage tokenInfo) &&
 
-        case latePayment' of
+        case (Interval.before deadlinePayback' range) of
           False ->
             traceIfFalse "[Plutus Error]: lendingScore must not been changed"
               (lendingScore' == lendingScore tokenInfo)

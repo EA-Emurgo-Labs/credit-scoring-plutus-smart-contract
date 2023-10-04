@@ -71,12 +71,12 @@ These are information about the Scoring Token:
 -}
 data TokenInfo = TokenInfo 
   {
-    ownerPKH       :: PlutusV2.PubKeyHash,
-    ownerSH        :: PlutusV2.ScriptHash,
-    baseScore      :: Integer,
-    lendingScore   :: Integer,
-    lendingPackage :: Integer,
-    latePayment    :: Bool
+    ownerPKH        :: PlutusV2.PubKeyHash,
+    ownerSH         :: PlutusV2.ScriptHash,
+    baseScore       :: Integer,
+    lendingScore    :: Integer,
+    lendingPackage  :: Integer,
+    deadlinePayback :: PlutusV2.POSIXTime
   }
   deriving(Show)
 

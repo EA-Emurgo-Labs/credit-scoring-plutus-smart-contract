@@ -68,11 +68,11 @@ mkTokenPolicy mParams rParams scriptContext =
     traceIfFalse "[Plutus Error]: you're not the operator to mint the Scoring Token"
       ownOperatorTokenInInput &&
 
-    traceIfFalse "[Plutus Error]: minted amount must be one at a time"
-      checkMintedAmount &&
-
     traceIfFalse "[Plutus Error]: user's score is not good enough to receive the Scoring Token"
       checkMinScoreToMintScoringToken &&
+
+    traceIfFalse "[Plutus Error]: minted amount must be one at a time"
+      checkMintedAmount &&
 
     traceIfFalse "[Plutus Error]: the Scoring Token must be sent to ManageScoringToken contract only"
       (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
@@ -139,7 +139,7 @@ mkTokenPolicy mParams rParams scriptContext =
     -- Check output datum.
     checkOutputDatum :: Maybe TokenInfo -> Bool
     checkOutputDatum tokenInfo = case tokenInfo of
-      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingPackage latePayment) ->
+      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingPackage deadlinePayback) ->
         traceIfFalse "[Plutus Error]: ownerPKH must not be empty"
           (PlutusV2.getPubKeyHash ownerPKH /= "") &&
 
@@ -155,8 +155,8 @@ mkTokenPolicy mParams rParams scriptContext =
         traceIfFalse "[Plutus Error]: lendingPackage must be 0 in initialize"
           (lendingPackage == 0) &&
 
-        traceIfFalse "[Plutus Error]: latePayment must be False in initialize"
-          (latePayment == False)
+        traceIfFalse "[Plutus Error]: deadlinePayback must be 0 in initialize"
+          (deadlinePayback == 0)
 
       Nothing -> traceError "[Plutus Error]: output datum must not be empty"
 
