@@ -51,6 +51,10 @@ cabal update
 cabal build
 ```
 
+cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 10
+
+cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 b0596dc9bf3c96e339178dda811966071d7d550599dc304c23b57e5e
+
 ## Create plutus script file
 
 1. Credit Scoring contract

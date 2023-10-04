@@ -1,9 +1,9 @@
 import * as lucid from "lucid-cardano";
 import * as Blockfrost from '@blockfrost/blockfrost-js';
-import marketplaceContract from "../../../built-contracts/credit-scoring.json" assert { type: "json" };
+import contract from "../../../built-contracts/manage-score.json" assert { type: "json" };
 
 const url = 'https://cardano-preprod.blockfrost.io/api/v0';
-const key = 'preproducgQyCbIAtRpfRQGcs7DqBOjN97VPQtd';
+const key = 'preprodqAq6ClZlZrpqNJpkdUli9KFNQE3WrtMZ';
 
 const API = new Blockfrost.BlockFrostAPI({
   projectId: key,
@@ -16,19 +16,18 @@ const API = new Blockfrost.BlockFrostAPI({
     "Preprod"
   );
 
-  const marketplaceContractScript = {
+  const contractScript = {
     type: "PlutusV2",
-    script: marketplaceContract.cborHex,
+    script: contract.cborHex,
   };
 
-  const marketplaceContractAddress = api.utils.validatorToAddress(
-    marketplaceContractScript
+  const contractAddress = api.utils.validatorToAddress(
+    contractScript
   );
-  // console.log('marketplaceContractAddress: ', marketplaceContractAddress);
+  console.log('contractAddress: ', contractAddress);
 
-  // const marketplaceContractPKH = lucid.getAddressDetails("addr_test1vzym9zs9h9w6yexdxys5kvehn7jw2yee3yy64t65vfg4hqswdtwh9");
-  const marketplaceContractPKH = lucid.getAddressDetails(marketplaceContractAddress).paymentCredential?.hash || "";
-  console.log('marketplaceContractPKH: ', marketplaceContractPKH);
+  const contractHash = lucid.getAddressDetails(contractAddress).paymentCredential?.hash || "";
+  console.log('contractHash: ', contractHash);
 
 })().catch(error => {
   console.log('error: ', error);
