@@ -1,5 +1,6 @@
 import * as lucid from "lucid-cardano";
 import * as Blockfrost from '@blockfrost/blockfrost-js';
+import { collectUserInfo } from "./utils/collect-user-info.js";
 import manageContract from "../../built-contracts/manage-score.json" assert { type: "json" };
 
 const url = 'https://cardano-preprod.blockfrost.io/api/v0';
@@ -35,10 +36,13 @@ const API = new Blockfrost.BlockFrostAPI({
 
   // Collect user's data
 
-  const addressBalance = 1000;
-  const stakingReward = 1;
-  const numberTxs = 5;
-  const totalSent = 200;
+  const userData = await collectUserInfo(userAddress);
+  console.log('userData: ', userData);
+
+  const addressBalance = userData.addressBalance;
+  const stakingReward = userData.stakingReward;
+  const numberTxs = userData.numberTxs;
+  const totalSent = userData.totalSent;
 
   //-------------------------------------------------------------------------
 
