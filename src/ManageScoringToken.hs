@@ -171,7 +171,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         traceIfFalse "[Plutus Error]: deadlinePayback must not been changed"
           (deadlinePayback' == deadlinePayback tokenInfo) &&
 
-        case (Interval.before deadlinePayback' range) of
+        case (lendingPackage tokenInfo /= 0 && Interval.before (deadlinePayback tokenInfo) range) of
           False ->
             traceIfFalse "[Plutus Error]: lendingScore must not been changed"
               (lendingScore' == lendingScore tokenInfo)
