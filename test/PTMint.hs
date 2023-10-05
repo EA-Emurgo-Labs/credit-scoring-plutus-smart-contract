@@ -15,7 +15,9 @@ import           Plutus.V2.Ledger.Api
 import qualified Data.ByteString.Char8      as BS8
 import           GeneralParams
 import           Utility
-import           CreditScoringContract      as CS
+import           MintScoringToken           as Mint
+import           ManageScoringToken         as Manager
+import qualified Plutus.Model               as Model
 
 ---------------------------------------------------------------------------------------------------
 --------------------------------------- TESTING MAIN ----------------------------------------------
@@ -23,7 +25,7 @@ import           CreditScoringContract      as CS
 main :: IO ()
 main = defaultMain $ do
   testGroup
-    "Test credit scoring contract"
+    "Test MintScoringToken contract"
     [ 
       testProperty "Is NOT operator"                                                      prop_NotOperator_Fails
     , testProperty "Is operator, but wrong minted amount"                                 prop_WrongMintedAmount_Fails
@@ -54,16 +56,27 @@ emurgoToken = fakeCoin(fake)
 emurgoValue :: Value
 emurgoValue = fakeValue(fake) 1
 
--- Init for the operator params.
-operatorParams :: OperatorParams
-operatorParams = OperatorParams {
+-- Init for the manage params.
+manageParams :: ManageParams
+manageParams = ManageParams {
+  operatorToken' = emurgoToken,
+  minusPointsIfLatePayment = 10
+}
+
+managerContractAddress :: TypedValidator datum redeemer
+managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
+
+-- Init for the mint params.
+mintParams :: MintParams
+mintParams = MintParams {
   operatorToken = emurgoToken,
-  minScoreToMintNFT = 1000
+  minScoreToMintScoringToken = 1000,
+  managerContract = Model.toValidatorHash managerContractAddress
 }
 
 -- Create the minting policy.
 mintingPolicy :: MintingPolicy
-mintingPolicy = CS.policy operatorParams
+mintingPolicy = Mint.policy mintParams
 
 -- Create the minting contract.
 mintingContract :: TypedPolicy redeemer
@@ -74,25 +87,13 @@ setupUsers :: Run [PubKeyHash]
 setupUsers = do
   operator    <- newUser (adaValue 1000 <> emurgoValue)
   notOperator <- newUser (adaValue 1000)
-  user        <- newUser (adaValue 0)
-  pure $ [operator, notOperator, user]
+  pure $ [operator, notOperator]
 
-{-
-The minting transaction will do the following actions:
-
-1. Get the unspent output from the operator.
-
-2. Mint a new Scoring NFT.
-
-3. Send this NFT to the user address, also attach the datum.
-
-4. Send the operator token back to the operator address, if we don't do this, the transaction will fail.
--}
-mintingTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> PubKeyHash -> Value -> Tx
-mintingTx usp valScoringNFT pointOfFactors weights outputScore user pkhOperator valOperatorToken = mconcat
+mintingTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
+mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
-  , mintValue mintingContract (pointOfFactors, weights) valScoringNFT
-  , payToKeyDatum user (HashDatum (NFTInfo outputScore user 0)) valScoringNFT
+  , mintValue mintingContract (pointsOfFactors', weights' ) valScoringToken
+  , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
   , payToKey pkhOperator valOperatorToken
   ]
 
@@ -104,65 +105,65 @@ toBuiltinByteString = fromString
 toBString :: String -> BS8.ByteString
 toBString = fromString
 
--- Create the NFT's name
-nameScoringNFT :: TokenName
-nameScoringNFT = tokenName . toBString $ "ScoringNFTEmurgoLabs"
+-- Create the Token's name
+nameScoringToken:: TokenName
+nameScoringToken = tokenName . toBString $ "ScoringToken"
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- TESTING PROPERTIES ------------------------------------------
 
 -- Test in case I'm not the operator, and the remaining values are random.
 prop_NotOperator_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_NotOperator_Fails isOperator mintedAmount pointOfFactors weights outputScore =
+prop_NotOperator_Fails isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
   (isOperator == False) ==> 
-    runChecks False isOperator mintedAmount pointOfFactors weights outputScore
+    runChecks False isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
 
 -- Test in case I'm the operator, minted amount is greater than 1, and the remaining values are random.
 prop_WrongMintedAmount_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_WrongMintedAmount_Fails isOperator mintedAmount pointOfFactors weights outputScore =
+prop_WrongMintedAmount_Fails isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
   (isOperator == True && mintedAmount > 1) ==>
-    runChecks False isOperator mintedAmount pointOfFactors weights outputScore
+    runChecks False isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
 
 -- Test in case I'm the operator, minted amount is 1, but poor score.
 prop_PoorScore_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_PoorScore_Fails _ _ pointOfFactors _ outputScore =
-  (length pointOfFactors >= 1 && pointOfFactors!!0 < 10) ==>
-    runChecks False True 1 pointOfFactors [100] outputScore
+prop_PoorScore_Fails _ _ pointsOfFactors' _ outputBaseScore =
+  (length pointsOfFactors' >= 1 && pointsOfFactors'!!0 < 10) ==>
+    runChecks False True 1 pointsOfFactors' [100] outputBaseScore
 
 -- Test in case I'm the operator, minted amount is 1, good score, but wrong output datum.
 prop_WrongDatum_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_WrongDatum_Fails _ _ _ _ outputScore =
-  (outputScore < 0) ==>
-    runChecks False True 1 [10] [100] outputScore
+prop_WrongDatum_Fails _ _ _ _ outputBaseScore =
+  (outputBaseScore < 0) ==>
+    runChecks False True 1 [10] [100] outputBaseScore
 
 -- Test in case I'm the operator, minted amount is 1, good score and output datum is correct (everything is good).
 prop_AllGood_Succeeds :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_AllGood_Succeeds _ _ pointOfFactors _ _ =
-  (length pointOfFactors >= 1 && pointOfFactors!!0 >= 10) ==>
-    runChecks True True 1 pointOfFactors [100] (getTotalScore pointOfFactors [100])
+prop_AllGood_Succeeds _ _ pointsOfFactors' _ _ =
+  (length pointsOfFactors' >= 1 && pointsOfFactors'!!0 >= 10) ==>
+    runChecks True True 1 pointsOfFactors' [100] (getBaseScore pointsOfFactors' [100])
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- RUNNING THE TESTS -------------------------------------------
 
 runChecks :: Bool -> Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-runChecks shouldMint isOperator mintedAmount pointOfFactors weights outputScore =
-  collect (isOperator, mintedAmount, pointOfFactors, weights, outputScore) $ monadic property check
+runChecks shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
+  collect (isOperator, mintedAmount, pointsOfFactors', weights', outputBaseScore) $ monadic property check
   -- monadic property check
     where 
       check = do
-        isGood <- run $ testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore
+        isGood <- run $ testValues shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
         assert isGood
 
 testValues :: Bool -> Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Run Bool
-testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore = do
-  -- Setup 3 users.
-  [operator, notOperator, user] <- setupUsers
+testValues shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore = do
+  -- Setup 2 users.
+  [operator, notOperator] <- setupUsers
 
   -- Create some variables.
-  let normalVal     = adaValue 100 
-      operatorVal   = emurgoValue
-      valScoringNFT = singleton (CS.symbolNFT operatorParams) nameScoringNFT mintedAmount
-      creator       = if isOperator then operator else notOperator
+  let normalVal       = adaValue 100 
+      operatorVal     = emurgoValue
+      valScoringToken = singleton (Mint.tokenSymbol mintParams) nameScoringToken mintedAmount
+      creator         = if isOperator then operator else notOperator
  
   -- Get user spent of the operator.
   uspOperator <- spend operator operatorVal
@@ -170,9 +171,9 @@ testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore
   -- Get user spent of not the operator.
   uspAnother  <- spend notOperator normalVal
 
-  -- Get actual user spent and make transaction to mint NFT and pay back the operator token to operator.
+  -- Get actual user spent and make transaction to mint Scoring Token and pay back the operator token to operator.
   let usp = if isOperator then uspOperator else uspAnother
-      tx  = mintingTx usp valScoringNFT pointOfFactors weights outputScore user operator operatorVal
+      tx  = mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore operator operatorVal
 
   -- Submit transaction.
   if shouldMint then submitTx creator tx else mustFail . submitTx creator $ tx
@@ -180,13 +181,13 @@ testValues shouldMint isOperator mintedAmount pointOfFactors weights outputScore
   -- Wait a little bit after submitting a transaction.
   waitNSlots 10
 
-  -- Get utxo of user address.
-  utxos <- utxoAt user
+  -- Get utxo of ManageScoringToken contract.
+  utxos <- utxoAt managerContractAddress
 
-  -- Verify the NFT has been sent to the user address or not.
+  -- Verify the Scoring Token has been sent to the ManageScoringToken contract or not.
   if shouldMint then do
     let [(_, oOut)] = utxos
         [(cs, tn, amount)] = flattenValue $ txOutValue oOut
-    return $ cs == CS.symbolNFT operatorParams && tn == nameScoringNFT && amount == 1
+    return $ cs == Mint.tokenSymbol mintParams && tn == nameScoringToken && amount == 1
   else
     return $ length utxos == 0
