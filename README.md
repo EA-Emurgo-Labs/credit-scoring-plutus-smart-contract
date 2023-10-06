@@ -51,10 +51,6 @@ cabal update
 cabal build
 ```
 
-cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 10
-
-cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 6d9f6260d2c9d9c09f37e45c6148575040167867adf6b68c79dcbde1
-
 ## Create plutus script file
 
 1. ManageScoringToken contract
@@ -82,11 +78,11 @@ npm install
 node src/utils/from-script-to-addr.js
 ```
 
-The result, for example: 6d9f6260d2c9d9c09f37e45c6148575040167867adf6b68c79dcbde1
+The result, for example: 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff7322
 
 Then, the command to build MintScoringToken, for example:
 ```
-cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 6d9f6260d2c9d9c09f37e45c6148575040167867adf6b68c79dcbde1
+cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff7322
 ```
 
 ## Interacte with contracts by using lucid-cardano

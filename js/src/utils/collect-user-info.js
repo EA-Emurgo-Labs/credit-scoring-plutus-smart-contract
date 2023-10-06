@@ -22,29 +22,26 @@ export async function collectUserInfo(userAddress) {
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
-  console.log('currentMonth: ', currentMonth);
-  console.log('currentYear: ', currentYear);
 
   // Get previous month
   const monthToCollectData = currentMonth == 0 ? 11 : currentMonth - 1;
   const yearToCollectData = currentMonth == 0 ? currentYear - 1 : currentYear;
  
   // Get address balance
+  console.log("Processing, please wait ...");
   const addressInfo = await API.addresses(userAddress);
   addressBalance = BigInt(Math.floor(addressInfo.amount[0].quantity / 1e6))
   console.log('addressBalance: ', addressBalance);
 
   // Get staking reward
+  console.log("Processing, please wait ...");
   const rewardInfo = await API.accountsRewardsAll(addressInfo.stake_address)
   for (let i = rewardInfo.length - 1; i >= 0; i--) {
     const epochInfo = await API.epochs(rewardInfo[i].epoch);
     const date = new Date(epochInfo.end_time * 1e3);
     const monthToCheck = date.getMonth();
-    // console.log('monthToCheck: ', monthToCheck);
     const yearToCheck = date.getFullYear();
-    // console.log('yearToCheck: ', yearToCheck);
     if (monthToCollectData == monthToCheck && yearToCollectData == yearToCheck) {
-      // console.log('amount: ', rewardInfo[i].amount);
       stakingReward += BigInt(rewardInfo[i].amount);
     } else if ((yearToCollectData > yearToCheck) || (yearToCollectData == yearToCheck && monthToCollectData > monthToCheck)) {
       break;
@@ -54,13 +51,12 @@ export async function collectUserInfo(userAddress) {
   console.log('stakingReward: ', stakingReward);
 
   // Get number txs and total sent
+  console.log("Processing, please wait ...");
   const txsInfo = await API.addressesTransactionsAll(userAddress);
   for (let i = txsInfo.length - 1; i >= 0; i--) {
     const date = new Date(txsInfo[i].block_time * 1e3);
     const monthToCheck = date.getMonth();
-    // console.log('monthToCheck: ', monthToCheck);
     const yearToCheck = date.getFullYear();
-    // console.log('yearToCheck: ', yearToCheck);
     if (monthToCollectData == monthToCheck && yearToCollectData == yearToCheck) {
       numberTxs += BigInt(1);
 
@@ -87,7 +83,6 @@ export async function collectUserInfo(userAddress) {
         }
       }
       let diff = sent - received;
-      // console.log('diff: ', diff);
       if (diff > 0n) {
         totalSent += diff;
       }
@@ -109,5 +104,4 @@ export async function collectUserInfo(userAddress) {
     numberTxs,
     totalSent
   }
- 
 };

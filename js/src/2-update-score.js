@@ -204,7 +204,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const unixTimeStamp = Math.floor(Date.now());
   console.log("unixTimeStamp: ", unixTimeStamp);
 
-  if (unixTimeStamp > deadlinePayback) {
+  if (lendingPackage > 0n && unixTimeStamp > deadlinePayback) {
     lendingScore = lendingScore - BigInt(MINUS_POINTS_IF_LATE_PAYMENT);
   }
 
@@ -217,7 +217,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
   const refUtxos = await api.utxosAt(addressHasRefScripts);
   const refManageScript = refUtxos.find(x => 
-    x.txHash == "a2e6fd9df4a9e85f163d286f755a0d471fab8941b3605e5a340f6a77a2181216"
+    x.txHash == "919ea2ec027d77fd8e1c3a0be6ea339a39014f90d735017bdbf8b78b0b6f6976"
   );
   console.log('refManageScript: ', refManageScript);
 
