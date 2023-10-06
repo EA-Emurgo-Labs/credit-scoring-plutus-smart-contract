@@ -1,0 +1,18 @@
+Operator address: addr_test1qq0snluqgfj0gpcmthyavglnu6xyzsc6fr8x5ha93ca0jlpa84ruhgqg4usxw6gnuqfsevzwc5ed5suqqg83z78zvdksge9fnu
+Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
+Index: 0
+
+UserA address: addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg
+Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
+Index: 1
+
+UserB address: addr_test1qr8vlktea6sknauuru4x4fk9z7uh52as4lxtq7fhc9k5kkuvttujnhpr7l7dj5fz8tu6h85xk0uz60ms75jhxjg2n6fsuhj372
+Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
+Index: 2
+
+Address has two reference scripts:
+addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r
+
+Reference script of Minting contract: cd739a53f330280c41f974a9c078f347ec59bd9c3362eb084f49d77e7d7b5316
+
+Reference script of Manager contract: 919ea2ec027d77fd8e1c3a0be6ea339a39014f90d735017bdbf8b78b0b6f6976
