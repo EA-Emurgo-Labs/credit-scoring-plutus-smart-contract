@@ -1,4 +1,5 @@
 {-# LANGUAGE    NumericUnderscores #-}
+{-# LANGUAGE    TypeApplications   #-}
 {-# OPTIONS_GHC -Wno-orphans       #-}
 
 module Main where
@@ -14,7 +15,6 @@ import           Plutus.Script.Utils.Value
 import           Plutus.V2.Ledger.Api
 import qualified Data.ByteString.Char8      as BS8
 import           GeneralParams
-import           Utility
 import           MintScoringToken           as Mint
 import           ManageScoringToken         as Manager
 import qualified Plutus.Model               as Model
@@ -25,13 +25,10 @@ import qualified Plutus.Model               as Model
 main :: IO ()
 main = defaultMain $ do
   testGroup
-    "Test MintScoringToken contract"
+    "Test ManageScoringToken contract"
     [ 
-      testProperty "Is NOT operator"                                                      prop_NotOperator_Fails
-    , testProperty "Is operator, but wrong minted amount"                                 prop_WrongMintedAmount_Fails
-    , testProperty "Is operator, right minted amount, but poor score"                     prop_PoorScore_Fails
-    , testProperty "Is operator, right minted amount, good score, but wrong output datum" prop_WrongDatum_Fails
-    , testProperty "Everything is correct"                                                prop_AllGood_Succeeds
+      testProperty "Is NOT operator" prop_NotOperator_Fails
+    , testProperty "Is operator"     prop_AllGood_Succeeds
     ]
 
 ---------------------------------------------------------------------------------------------------
@@ -63,6 +60,7 @@ manageParams = ManageParams {
   minusPointsIfLatePayment = 10
 }
 
+-- Create manager script
 managerContractAddress :: TypedValidator datum redeemer
 managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
 
@@ -89,10 +87,20 @@ setupUsers = do
   notOperator <- newUser (adaValue 1000)
   pure $ [operator, notOperator]
 
-mintingTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
-mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
+-- This transaction is to mint a new Scoring Token.
+mintScoringTokenTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
+mintScoringTokenTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
   , mintValue mintingContract (pointsOfFactors', weights' ) valScoringToken
+  , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
+  , payToKey pkhOperator valOperatorToken
+  ]
+
+-- This transaction is to update score.
+updateScoreTx :: UserSpend -> Value -> TxOutRef -> TokenInfo -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
+updateScoreTx usp valScoringToken utxoContract oldDatum pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
+  [ userSpend usp
+  , spendScript managerContractAddress utxoContract (pointsOfFactors', weights') oldDatum
   , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
   , payToKey pkhOperator valOperatorToken
   ]
@@ -112,82 +120,87 @@ nameScoringToken = tokenName . toBString $ "ScoringToken"
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- TESTING PROPERTIES ------------------------------------------
 
--- Test in case I'm not the operator, and the remaining values are random.
-prop_NotOperator_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_NotOperator_Fails isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
+-- Test in case I'm not the operator.
+prop_NotOperator_Fails :: Bool -> Property
+prop_NotOperator_Fails isOperator =
   (isOperator == False) ==> 
-    runChecks False isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
+    runChecks False isOperator
 
--- Test in case I'm the operator, minted amount is greater than 1, and the remaining values are random.
-prop_WrongMintedAmount_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_WrongMintedAmount_Fails isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
-  (isOperator == True && mintedAmount > 1) ==>
-    runChecks False isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
-
--- Test in case I'm the operator, minted amount is 1, but poor score.
-prop_PoorScore_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_PoorScore_Fails _ _ pointsOfFactors' _ outputBaseScore =
-  (length pointsOfFactors' >= 1 && pointsOfFactors'!!0 < 10) ==>
-    runChecks False True 1 pointsOfFactors' [100] outputBaseScore
-
--- Test in case I'm the operator, minted amount is 1, good score, but wrong output datum.
-prop_WrongDatum_Fails :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_WrongDatum_Fails _ _ _ _ outputBaseScore =
-  (outputBaseScore < 0) ==>
-    runChecks False True 1 [10] [100] outputBaseScore
-
--- Test in case I'm the operator, minted amount is 1, good score and output datum is correct (everything is good).
-prop_AllGood_Succeeds :: Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-prop_AllGood_Succeeds _ _ pointsOfFactors' _ _ =
-  (length pointsOfFactors' >= 1 && pointsOfFactors'!!0 >= 10) ==>
-    runChecks True True 1 pointsOfFactors' [100] (getBaseScore pointsOfFactors' [100])
+-- Test in case I'm the operator.
+prop_AllGood_Succeeds :: Bool -> Property
+prop_AllGood_Succeeds isOperator =
+  (isOperator == True) ==>
+    runChecks True isOperator
 
 ---------------------------------------------------------------------------------------------------
 ------------------------------------- RUNNING THE TESTS -------------------------------------------
 
-runChecks :: Bool -> Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Property
-runChecks shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore =
-  collect (isOperator, mintedAmount, pointsOfFactors', weights', outputBaseScore) $ monadic property check
+runChecks :: Bool -> Bool -> Property
+runChecks isSuccess' isOperator =
+  collect (isOperator) $ monadic property check
   -- monadic property check
     where 
       check = do
-        isGood <- run $ testValues shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore
+        isGood <- run $ testValues isSuccess' isOperator
         assert isGood
 
-testValues :: Bool -> Bool -> Integer -> [Integer] -> [Integer] -> Integer -> Run Bool
-testValues shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBaseScore = do
+testValues :: Bool -> Bool -> Run Bool
+testValues isSuccess' isOperator = do
   -- Setup 2 users.
   [operator, notOperator] <- setupUsers
 
   -- Create some variables.
   let normalVal       = adaValue 100 
       operatorVal     = emurgoValue
-      valScoringToken = singleton (Mint.tokenSymbol mintParams) nameScoringToken mintedAmount
-      creator         = if isOperator then operator else notOperator
+      valScoringToken = singleton (Mint.tokenSymbol mintParams) nameScoringToken 1
  
   -- Get user spent of the operator.
   uspOperator <- spend operator operatorVal
 
-  -- Get user spent of not the operator.
-  uspAnother  <- spend notOperator normalVal
+  -- Creat a transaction to mint a new Scoring Token.
+  let tx = mintScoringTokenTx uspOperator valScoringToken [10] [100] 1000 operator operatorVal
 
-  -- Get actual user spent and make transaction to mint Scoring Token and pay back the operator token to operator.
-  let usp = if isOperator then uspOperator else uspAnother
-      tx  = mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore operator operatorVal
-
-  -- Submit transaction.
-  if shouldMint then submitTx creator tx else mustFail . submitTx creator $ tx
+  -- Submit tx
+  submitTx operator tx
 
   -- Wait a little bit after submitting a transaction.
   waitNSlots 10
 
-  -- Get utxo of ManageScoringToken contract.
-  utxos <- utxoAt managerContractAddress
+  -- Get utxo and old datum of ManageScoringToken contract.
+  [(txOutRefContract, _)] <- utxoAt managerContractAddress
+  oldDatum <- datumAt @TokenInfo txOutRefContract
 
-  -- Verify the Scoring Token has been sent to the ManageScoringToken contract or not.
-  if shouldMint then do
-    let [(_, oOut)] = utxos
-        [(cs, tn, amount)] = flattenValue $ txOutValue oOut
-    return $ cs == Mint.tokenSymbol mintParams && tn == nameScoringToken && amount == 1
-  else
-    return $ length utxos == 0
+  case oldDatum of
+    Just i -> do
+      -- Get user spent of the operator.
+      uspOperator' <- spend operator operatorVal
+
+      -- Get user spent of not the operator.
+      uspAnother'  <- spend notOperator normalVal
+
+      -- Create some variables.
+      let creator = if isOperator then operator else notOperator
+          usp     = if isOperator then uspOperator' else uspAnother'
+          tx'     = updateScoreTx usp valScoringToken txOutRefContract i [20] [100] 2000 operator operatorVal
+
+      -- Submit tx
+      if isSuccess' then submitTx creator tx' else mustFail . submitTx creator $ tx'
+
+      -- Wait a little bit after submitting a transaction.
+      waitNSlots 10
+
+      -- Get new datum
+      [(txOutRefContract', _)] <- utxoAt managerContractAddress
+      datum <- datumAt @TokenInfo txOutRefContract'
+
+      -- Verify the new base score in new datum.
+      if isSuccess' then do
+        case datum of
+          Just (TokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 2000
+          Nothing -> return False
+      else do
+        case datum of
+          Just (TokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 1000
+          Nothing -> return False
+
+    Nothing -> return False

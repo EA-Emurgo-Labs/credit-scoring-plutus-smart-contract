@@ -63,6 +63,7 @@ manageParams = ManageParams {
   minusPointsIfLatePayment = 10
 }
 
+-- Create manager script
 managerContractAddress :: TypedValidator datum redeemer
 managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
 
@@ -89,6 +90,7 @@ setupUsers = do
   notOperator <- newUser (adaValue 1000)
   pure $ [operator, notOperator]
 
+-- This transaction is to mint a new Scoring Token.
 mintingTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
 mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
