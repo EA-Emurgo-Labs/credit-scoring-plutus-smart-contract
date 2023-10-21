@@ -48,13 +48,18 @@ const API = new Blockfrost.BlockFrostAPI({
 
   // Collect user's data
 
-  const userData = await collectUserInfo(userAddress);
-  console.log('userData: ', userData);
+//   const userData = await collectUserInfo(userAddress);
+//   console.log('userData: ', userData);
+// 
+//   const addressBalance = userData.addressBalance;
+//   const stakingReward = userData.stakingReward;
+//   const numberTxs = userData.numberTxs;
+//   const totalSent = userData.totalSent;
 
-  const addressBalance = userData.addressBalance;
-  const stakingReward = userData.stakingReward;
-  const numberTxs = userData.numberTxs;
-  const totalSent = userData.totalSent;
+  const addressBalance = 9000n;
+  const stakingReward = 0n;
+  const numberTxs = 30n;
+  const totalSent = 40000n;
 
   //-------------------------------------------------------------------------
 
@@ -141,7 +146,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
   const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
   const lendingScore = 0n;
-  const lendingPackage = 0n;
+  const lendingAmount = 0n;
   const deadlinePayback = 0n;
 
   const wallet = await api.selectWalletFromSeed(
@@ -184,7 +189,7 @@ const API = new Blockfrost.BlockFrostAPI({
   metadataToken[policyId] = infoObject;
   
   const datum = lucid.Data.to(
-    new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingPackage, deadlinePayback])
+    new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
   const manageContractScript = {
@@ -196,17 +201,18 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('manageContractAddress: ', manageContractAddress);
 
-  const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
-  const refUtxos = await api.utxosAt(addressHasRefScripts);
-  const refMintScript = refUtxos.find(x => 
-    x.txHash == "cd739a53f330280c41f974a9c078f347ec59bd9c3362eb084f49d77e7d7b5316"
-  );
-  console.log('refMintScript: ', refMintScript);
+  // const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+  // const refUtxos = await api.utxosAt(addressHasRefScripts);
+  // const refMintScript = refUtxos.find(x => 
+  //   x.txHash == "cd739a53f330280c41f974a9c078f347ec59bd9c3362eb084f49d77e7d7b5316"
+  // );
+  // console.log('refMintScript: ', refMintScript);
 
   const tx = await api.newTx()
-  .readFrom([refMintScript])
+  // .readFrom([refMintScript])
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
+  .attachMintingPolicy(mintingPolicy)
   .attachMetadata(label, metadataToken)
   .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();

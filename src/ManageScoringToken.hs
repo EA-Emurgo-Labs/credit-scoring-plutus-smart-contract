@@ -42,7 +42,8 @@ import           Prelude                              (Show (..), (.))
 import           GeneralParams
 import           Utility
 
-data RedeemerParams = RedeemerParams
+data RedeemerParams =
+  Recalculate
   {
     {-
       + Factor 0: address balance
@@ -60,27 +61,35 @@ data RedeemerParams = RedeemerParams
     -}     
     weights :: [Integer]
   }
+  |
+  UpdateFlags
   deriving(Show)
 
 PlutusTx.makeLift ''RedeemerParams
-PlutusTx.makeIsDataIndexed ''RedeemerParams [('RedeemerParams,0)]
+PlutusTx.makeIsDataIndexed ''RedeemerParams [('Recalculate,0),('UpdateFlags,1)]
 
 -- This is the validator function for contract ManageScoringToken
 {-# INLINABLE mkValidator #-}
 mkValidator :: ManageParams -> TokenInfo -> RedeemerParams -> PlutusV2.ScriptContext -> Bool
 mkValidator mParams tokenInfo rParams scriptContext =
-    traceIfFalse "[Plutus Error]: you're not the operator to update the Scoring Token"
-      ownOperatorTokenInInput &&
+  traceIfFalse "[Plutus Error]: cannot find the Scoring Token in input"
+    ((Value.isAdaOnlyValue theScoringTokenInInput) == False) &&
 
-    traceIfFalse "[Plutus Error]: cannot find the Scoring Token in input"
-      ((Value.isAdaOnlyValue theScoringTokenInInput) == False) &&
+  traceIfFalse "[Plutus Error]: the Scoring Token in output must be sent to the ManageScoringToken contract only"
+    (checkScoringTokenInOutput thisContractAddress) &&
 
-    traceIfFalse "[Plutus Error]: the Scoring Token in output must be sent to the ManageScoringToken contract only"
-      (checkScoringTokenInOutput thisContractAddress) &&
+  case rParams of
+    Recalculate pointsOfFactors weights ->
+      traceIfFalse "[Plutus Error]: you're not the operator to update the Scoring Token"
+        ownOperatorTokenInInput &&
 
-    traceIfFalse "[Plutus Error]: output datum is not correct"
-      (checkOutputDatum $ parseOutputDatumInTxOut $ getTxOutHasScoringToken)
+      traceIfFalse "[Plutus Error]: output datum is not correct"
+        (checkOutputDatum pointsOfFactors weights $ parseOutputDatumInTxOut $ getTxOutHasScoringToken)
 
+    UpdateFlags ->
+      traceIfFalse "[Plutus Error]: you're not the Scoring Token's owner"
+        (PlutusV2.txSignedBy info (ownerPKH tokenInfo))
+    
   where
     -- Get all info about the transaction
     info :: PlutusV2.TxInfo
@@ -153,9 +162,9 @@ mkValidator mParams tokenInfo rParams scriptContext =
                                         Nothing -> Nothing
 
     -- Check output datum.
-    checkOutputDatum :: Maybe TokenInfo -> Bool
-    checkOutputDatum outputDatum = case outputDatum of
-      Just (TokenInfo ownerPKH' ownerSH' newBaseScore lendingScore' lendingPackage' deadlinePayback') ->
+    checkOutputDatum :: [Integer] -> [Integer] -> Maybe TokenInfo -> Bool
+    checkOutputDatum pointsOfFactors weights outputDatum = case outputDatum of
+      Just (TokenInfo ownerPKH' ownerSH' newBaseScore lendingScore' lendingAmount' deadlinePayback') ->
         traceIfFalse "[Plutus Error]: ownerPKH must not been changed"
           (ownerPKH' == ownerPKH tokenInfo) &&
 
@@ -163,15 +172,15 @@ mkValidator mParams tokenInfo rParams scriptContext =
           (ownerSH' == ownerSH tokenInfo) &&
 
         traceIfFalse "[Plutus Error]: new base score must be correct based on new points and weights"
-          (newBaseScore == getBaseScore (pointsOfFactors rParams) (weights rParams)) &&
+          (newBaseScore == getBaseScore pointsOfFactors weights) &&
 
-        traceIfFalse "[Plutus Error]: lendingPackage must not been changed"
-          (lendingPackage' == lendingPackage tokenInfo) &&
+        traceIfFalse "[Plutus Error]: lendingAmount must not been changed"
+          (lendingAmount' == lendingAmount tokenInfo) &&
 
         traceIfFalse "[Plutus Error]: deadlinePayback must not been changed"
           (deadlinePayback' == deadlinePayback tokenInfo) &&
 
-        case (lendingPackage tokenInfo /= 0 && Interval.before (deadlinePayback tokenInfo) range) of
+        case (lendingAmount tokenInfo /= 0 && Interval.before (deadlinePayback tokenInfo) range) of
           False ->
             traceIfFalse "[Plutus Error]: lendingScore must not been changed"
               (lendingScore' == lendingScore tokenInfo)

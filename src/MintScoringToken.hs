@@ -139,7 +139,7 @@ mkTokenPolicy mParams rParams scriptContext =
     -- Check output datum.
     checkOutputDatum :: Maybe TokenInfo -> Bool
     checkOutputDatum tokenInfo = case tokenInfo of
-      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingPackage deadlinePayback) ->
+      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingAmount deadlinePayback) ->
         traceIfFalse "[Plutus Error]: ownerPKH must not be empty"
           (PlutusV2.getPubKeyHash ownerPKH /= "") &&
 
@@ -152,8 +152,8 @@ mkTokenPolicy mParams rParams scriptContext =
         traceIfFalse "[Plutus Error]: lendingScore must be 0 in initialize"
           (lendingScore == 0) &&
 
-        traceIfFalse "[Plutus Error]: lendingPackage must be 0 in initialize"
-          (lendingPackage == 0) &&
+        traceIfFalse "[Plutus Error]: lendingAmount must be 0 in initialize"
+          (lendingAmount == 0) &&
 
         traceIfFalse "[Plutus Error]: deadlinePayback must be 0 in initialize"
           (deadlinePayback == 0)

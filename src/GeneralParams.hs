@@ -66,7 +66,7 @@ These are information about the Scoring Token:
 + ownerSH: owner's script hash (address = pubkey hash + script hash).
 + baseScore: this score will be re-calculated at the beginning of each month.
 + lendingScore: this score will be updated based on lending history.
-+ lendingPackage: it is used to mark the package that user is borrowing from Lending contract.
++ lendingAmount: it is used to mark the package that user is borrowing from Lending contract.
 + deadlinePayback: it is used to check whether user has a late payment or not.
 -}
 data TokenInfo = TokenInfo 
@@ -75,7 +75,7 @@ data TokenInfo = TokenInfo
     ownerSH         :: PlutusV2.ScriptHash,
     baseScore       :: Integer,
     lendingScore    :: Integer,
-    lendingPackage  :: Integer,
+    lendingAmount   :: Integer,
     deadlinePayback :: PlutusV2.POSIXTime
   }
   deriving(Show)

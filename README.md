@@ -82,7 +82,7 @@ The result, for example: 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff732
 
 Then, the command to build MintScoringToken, for example:
 ```
-cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff7322
+cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 70bee2fb8d84d953f012e25f6f6a4570e70323173a95c54020832cd0
 ```
 
 ## Interacte with contracts by using lucid-cardano
