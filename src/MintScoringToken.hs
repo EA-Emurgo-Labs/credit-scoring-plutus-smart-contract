@@ -74,8 +74,8 @@ mkTokenPolicy mParams rParams scriptContext =
     traceIfFalse "[Plutus Error]: minted amount must be one at a time"
       checkMintedAmount &&
 
-    traceIfFalse "[Plutus Error]: the Scoring Token must be sent to ManageScoringToken contract only"
-      (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
+    -- traceIfFalse "[Plutus Error]: the Scoring Token must be sent to manager contract only"
+    --   (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
 
     traceIfFalse "[Plutus Error]: output datum is not correct"
       (checkOutputDatum $ parseOutputDatum $ getTxOutHasScoringToken)
@@ -115,7 +115,7 @@ mkTokenPolicy mParams rParams scriptContext =
     -- Check if the user's base score is good enough to receive the Scoring Token.
     checkMinScoreToMintScoringToken :: Bool
     checkMinScoreToMintScoringToken =
-      getBaseScore (pointsOfFactors rParams) (weights rParams) >= minScoreToMintScoringToken mParams
+      getBaseScore (pointsOfFactors rParams) (weights rParams) >= minScore mParams
 
     {-
     This function will check whether the Scoring Token is in the outputs or not.
@@ -128,7 +128,7 @@ mkTokenPolicy mParams rParams scriptContext =
         Just i  -> i
 
     -- Parse output datum to TokenInfo format.
-    parseOutputDatum :: PlutusV2.TxOut -> Maybe TokenInfo
+    parseOutputDatum :: PlutusV2.TxOut -> Maybe ScoringTokenInfo
     parseOutputDatum txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing
       PlutusV2.OutputDatum od      -> PlutusTx.fromBuiltinData $ PlutusV2.getDatum od
@@ -137,9 +137,9 @@ mkTokenPolicy mParams rParams scriptContext =
                                         Nothing -> Nothing
 
     -- Check output datum.
-    checkOutputDatum :: Maybe TokenInfo -> Bool
+    checkOutputDatum :: Maybe ScoringTokenInfo -> Bool
     checkOutputDatum tokenInfo = case tokenInfo of
-      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingAmount deadlinePayback) ->
+      Just (ScoringTokenInfo ownerPKH ownerSH baseScore lendingScore lendingAmount deadlinePayback) ->
         traceIfFalse "[Plutus Error]: ownerPKH must not be empty"
           (PlutusV2.getPubKeyHash ownerPKH /= "") &&
 

@@ -2,7 +2,7 @@ import * as lucid from "lucid-cardano";
 import * as Blockfrost from '@blockfrost/blockfrost-js';
 import { collectUserInfo } from "./utils/collect-user-info.js";
 import mintContract from "../../built-contracts/mint-score.json" assert { type: "json" };
-import manageContract from "../../built-contracts/manage-score.json" assert { type: "json" };
+import managerContract from "../../built-contracts/manage-score.json" assert { type: "json" };
 
 const url = 'https://cardano-preprod.blockfrost.io/api/v0';
 const key = 'preprodqAq6ClZlZrpqNJpkdUli9KFNQE3WrtMZ';
@@ -192,14 +192,14 @@ const API = new Blockfrost.BlockFrostAPI({
     new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
-  const manageContractScript = {
+  const managerContractScript = {
     type: "PlutusV2",
-    script: manageContract.cborHex,
+    script: managerContract.cborHex,
   };
-  const manageContractAddress = api.utils.validatorToAddress(
-    manageContractScript
+  const managerContractAddress = api.utils.validatorToAddress(
+    managerContractScript
   );
-  console.log('manageContractAddress: ', manageContractAddress);
+  console.log('managerContractAddress: ', managerContractAddress);
 
   // const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
   // const refUtxos = await api.utxosAt(addressHasRefScripts);
@@ -214,7 +214,7 @@ const API = new Blockfrost.BlockFrostAPI({
   .mintAssets({ [unit]: 1n }, redeemer)
   .attachMintingPolicy(mintingPolicy)
   .attachMetadata(label, metadataToken)
-  .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
+  .payToContract(managerContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();
 
   const signedTx = await tx.sign().complete();

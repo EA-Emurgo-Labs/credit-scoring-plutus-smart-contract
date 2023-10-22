@@ -17,7 +17,8 @@ module GeneralParams
   (
     MintParams(..),
     ManageParams(..),
-    TokenInfo(..)
+    ScoringTokenInfo(..),
+    LendingPackageInfo(..)
   )
 where
 
@@ -30,15 +31,13 @@ import           Prelude                   (Show (..))
 {-
 These parameters will be used in MintScoringToken contract:
 + operatorToken: only operator is able to mint a new Scoring Token.
-+ minScoreToMintScoringToken: there is a threshold (a minimum score) to check if a user is able to receive the
++ minScore: there is a threshold (a minimum score) to check if a user is able to receive the
 Scoring Token or not.
-+ managerContract: after minting, the Scoring Token will be sent to the ManageScoringToken contract only.
 -}
 data MintParams = MintParams
   {
-    operatorToken              :: Value.AssetClass,
-    minScoreToMintScoringToken :: Integer,
-    managerContract            :: PlutusV2.ValidatorHash
+    operatorToken :: Value.AssetClass,
+    minScore      :: Integer
   }
   deriving(Show)
 
@@ -52,8 +51,11 @@ These parameters will be used in ManageScoringToken contract:
 -}
 data ManageParams = ManageParams
   {
-    operatorToken'           :: Value.AssetClass,
-    minusPointsIfLatePayment :: Integer
+    operatorToken'  :: Value.AssetClass,
+    operatorAddr    :: PlutusV2.PubKeyHash,
+    scoringToken    :: Value.AssetClass,
+    lendingContract :: PlutusV2.ValidatorHash,
+    biasPoints      :: Integer
   }
   deriving(Show)
 
@@ -69,7 +71,7 @@ These are information about the Scoring Token:
 + lendingAmount: it is used to mark the package that user is borrowing from Lending contract.
 + deadlinePayback: it is used to check whether user has a late payment or not.
 -}
-data TokenInfo = TokenInfo 
+data ScoringTokenInfo = ScoringTokenInfo 
   {
     ownerPKH        :: PlutusV2.PubKeyHash,
     ownerSH         :: PlutusV2.ScriptHash,
@@ -80,5 +82,18 @@ data TokenInfo = TokenInfo
   }
   deriving(Show)
 
-PlutusTx.makeLift ''TokenInfo
-PlutusTx.makeIsDataIndexed ''TokenInfo [('TokenInfo,0)]
+PlutusTx.makeLift ''ScoringTokenInfo
+PlutusTx.makeIsDataIndexed ''ScoringTokenInfo [('ScoringTokenInfo,0)]
+
+data LendingPackageInfo = LendingPackageInfo 
+  {
+    fromPoint        :: Integer,
+    toPoint          :: Integer,
+    amount           :: Integer,
+    interest         :: Integer,
+    deadline         :: PlutusV2.POSIXTime
+  }
+  deriving(Show)
+
+PlutusTx.makeLift ''LendingPackageInfo
+PlutusTx.makeIsDataIndexed ''LendingPackageInfo [('LendingPackageInfo,0)]

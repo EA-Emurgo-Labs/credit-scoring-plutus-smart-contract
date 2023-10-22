@@ -17,7 +17,8 @@ module Utility
   (
     getBaseScore,
     toCurrencySymbol,
-    toValidatorHash
+    toValidatorHash,
+    toPubKeyHash
   )
 where
 
@@ -48,3 +49,9 @@ toValidatorHash :: Haskell.String -> PlutusV2.ValidatorHash
 toValidatorHash str = case JSON.tryDecode $ T.pack str of
   Left  _ -> PlutusV2.ValidatorHash emptyByteString
   Right b -> PlutusV2.ValidatorHash $ toBuiltin b
+
+-- This function is to convert from string to pubkey hash
+toPubKeyHash :: Haskell.String -> PlutusV2.PubKeyHash
+toPubKeyHash str = case JSON.tryDecode $ T.pack str of
+  Left  _ -> PlutusV2.PubKeyHash emptyByteString
+  Right b -> PlutusV2.PubKeyHash $ toBuiltin b

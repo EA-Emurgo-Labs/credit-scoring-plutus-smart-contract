@@ -30,13 +30,12 @@ main :: IO ()
 main = do
   -- Get the info of operator token, min score to mint the Scoring Token
   -- After minting, the Scoring Token will be sent to the ManageScoringToken contract (manager contract) only.
-  [tokenPolicy, tokenName, minScore, managerContract'] <- getArgs
+  [operatorTokenPolicy, operatorTokenName, minScore'] <- getArgs
 
   -- Construct params for contract MintScoringToken.
   let mintParams = MintParams {
-    operatorToken = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
-    minScoreToMintScoringToken = Haskell.read minScore :: Integer,
-    managerContract = toValidatorHash managerContract'
+    operatorToken = Value.AssetClass (toCurrencySymbol operatorTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) operatorTokenName),
+    minScore = Haskell.read minScore' :: Integer
   }
 
   let contract = "built-contracts/mint-score.json"

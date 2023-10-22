@@ -30,12 +30,15 @@ main :: IO ()
 main = do
   -- Get the info of operator token, minus points (in case of late payment in lending)
   -- to manage the Scoring Token.
-  [tokenPolicy, tokenName, minusPoints] <- getArgs
+  [operatorTokenPolicy, operatorTokenName, operatorAddr', scoringTokenPolicy, scoringTokenNam, lendingContract', biasPoints'] <- getArgs
 
   -- Construct params for contract ManageScoringToken.
   let manageParams = ManageParams {
-    operatorToken' = Value.AssetClass (toCurrencySymbol tokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) tokenName),
-    minusPointsIfLatePayment = Haskell.read minusPoints :: Integer
+    operatorToken' = Value.AssetClass (toCurrencySymbol operatorTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) operatorTokenName),
+    operatorAddr = toPubKeyHash operatorAddr',
+    scoringToken = Value.AssetClass (toCurrencySymbol scoringTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) scoringTokenNam),
+    lendingContract = toValidatorHash lendingContract',
+    biasPoints = Haskell.read biasPoints' :: Integer
   }
 
   let contract = "built-contracts/manage-score.json"
