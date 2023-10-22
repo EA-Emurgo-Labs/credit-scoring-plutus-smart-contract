@@ -119,7 +119,18 @@ mkValidator mParams tokenInfo rParams scriptContext =
 
     UserUpdateFlagsPayback ->
       traceIfFalse "[Plutus Error]: you're not the Scoring Token's owner"
-        (PlutusV2.txSignedBy info (ownerPKH tokenInfo))
+        (PlutusV2.txSignedBy info (ownerPKH tokenInfo)) &&
+
+      -- If you did not borrow before, you shouldn't pay back.
+      traceIfFalse "[Plutus Error]: you did not borrow any package before"
+        (lendingAmount tokenInfo /= 0) &&
+
+      -- Pay back the money to operator address.
+      traceIfFalse "[Plutus Error]: value has been paid back to operator must be correct"
+        checkAmountPaybackToOperator &&
+
+      traceIfFalse "[Plutus Error]: output datum (payback) is not correct"
+        (checkOutputDatumPayback outputScoringTokenInfo)
     
   where
     -- Get all info about the transaction
@@ -277,6 +288,42 @@ mkValidator mParams tokenInfo rParams scriptContext =
 
       traceIfFalse "[Plutus Error]: deadlinePayback must be updated"
         (deadlinePayback outputDatum == deadline getLendingPackageInfo)
+
+    -- Check amount has been paid back to operator.
+    checkAmountPaybackToOperator :: Bool
+    checkAmountPaybackToOperator =
+      case find (
+        \x -> Value.valueOf x Value.adaSymbol Value.adaToken == (lendingAmount tokenInfo) * 1_000_000
+      ) (PlutusV2.pubKeyOutputsAt (operatorAddr mParams) info) of
+        Nothing -> False
+        Just _  -> True
+
+    -- Check output datum.
+    checkOutputDatumPayback :: ScoringTokenInfo -> Bool
+    checkOutputDatumPayback outputDatum =
+      traceIfFalse "[Plutus Error]: ownerPKH must be unchanged"
+        (ownerPKH outputDatum == ownerPKH tokenInfo) &&
+
+      traceIfFalse "[Plutus Error]: ownerSH must be unchanged"
+        (ownerSH outputDatum == ownerSH tokenInfo) &&
+
+      traceIfFalse "[Plutus Error]: baseScore must be unchanged"
+        (baseScore outputDatum == baseScore tokenInfo) &&
+
+      traceIfFalse "[Plutus Error]: lendingAmount must be reset"
+        (lendingAmount outputDatum == 0) &&
+
+      traceIfFalse "[Plutus Error]: deadlinePayback must be reset"
+        (deadlinePayback outputDatum == 0) &&
+
+      case (Interval.before (deadlinePayback tokenInfo) range) of
+        False ->
+          traceIfFalse "[Plutus Error]: lendingScore must be increased because of ontime payment"
+            (lendingScore outputDatum == (lendingScore tokenInfo) + (biasPoints mParams))
+
+        True ->
+          traceIfFalse "[Plutus Error]: lendingScore must be decreased because of late payment"
+            (lendingScore outputDatum == (lendingScore tokenInfo) - (biasPoints mParams))
 
 data ContractType
 
