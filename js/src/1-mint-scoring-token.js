@@ -46,20 +46,67 @@ const API = new Blockfrost.BlockFrostAPI({
 
   //-------------------------------------------------------------------------
 
+  const managerContractScript = {
+    type: "PlutusV2",
+    script: managerContract.cborHex,
+  };
+  const managerContractAddress = api.utils.validatorToAddress(
+    managerContractScript
+  );
+  console.log('managerContractAddress: ', managerContractAddress);
+
+  const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
+  console.log('ownerPKH: ', ownerPKH);
+  const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
+  console.log('ownerSH: ', ownerSH);
+
+  const contractUtxos = await api.utxosAt(managerContractAddress);
+
+  let ownerPKHInDatum = "";
+  let ownerSHInDatum = "";
+  for (const utxo of contractUtxos) {
+    const txInfo = await API.txsUtxos(utxo.txHash);
+
+    let contractOutput = null;
+    for (const output of txInfo.outputs) {
+      if (output.address == managerContractAddress) {
+        contractOutput = output;
+        break;
+      }
+    }
+
+    if (contractOutput != null) {
+      console.log('contractOutput: ', contractOutput);
+
+      const previousDatumHash = contractOutput.data_hash;
+
+      if (previousDatumHash != null) {
+        const previousDatum = await API.scriptsDatum(previousDatumHash);
+        console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
+
+        ownerPKHInDatum = previousDatum.json_value.fields[0]["bytes"];
+
+        ownerSHInDatum = previousDatum.json_value.fields[1]["bytes"];
+
+        if (ownerPKHInDatum == ownerPKH && ownerSHInDatum == ownerSH) {
+          console.log("The scoring token has been minted for this user already!");
+          return;
+        }
+      }
+    }
+  }
+
+  //-------------------------------------------------------------------------
+
   // Collect user's data
 
-//   const userData = await collectUserInfo(userAddress);
-//   console.log('userData: ', userData);
-// 
-//   const addressBalance = userData.addressBalance;
-//   const stakingReward = userData.stakingReward;
-//   const numberTxs = userData.numberTxs;
-//   const totalSent = userData.totalSent;
+  const userData = await collectUserInfo(userAddress);
+  console.log('userData: ', userData);
 
-  const addressBalance = 9000n;
-  const stakingReward = 0n;
-  const numberTxs = 30n;
-  const totalSent = 40000n;
+  const addressBalance = userData.addressBalance;
+  const stakingReward = userData.stakingReward;
+  const numberTxs = userData.numberTxs;
+  const totalSent = userData.totalSent;
 
   //-------------------------------------------------------------------------
 
@@ -143,8 +190,6 @@ const API = new Blockfrost.BlockFrostAPI({
     baseScore += pointsOfFactors[i] * weights[i];
   }
   console.log(`baseScore: ${baseScore}`);
-  const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
-  const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
   const lendingScore = 0n;
   const lendingAmount = 0n;
   const deadlinePayback = 0n;
@@ -191,15 +236,6 @@ const API = new Blockfrost.BlockFrostAPI({
   const datum = lucid.Data.to(
     new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
   );
-
-  const managerContractScript = {
-    type: "PlutusV2",
-    script: managerContract.cborHex,
-  };
-  const managerContractAddress = api.utils.validatorToAddress(
-    managerContractScript
-  );
-  console.log('managerContractAddress: ', managerContractAddress);
 
   // const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
   // const refUtxos = await api.utxosAt(addressHasRefScripts);

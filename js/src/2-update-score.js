@@ -32,7 +32,70 @@ const API = new Blockfrost.BlockFrostAPI({
   // Address to update score
   const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
 
+  const scoringToken = "fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a453636f72696e67546f6b656e";
+
   //-------------------------------------------------------------------------
+
+  const managerContractScript = {
+    type: "PlutusV2",
+    script: managerContract.cborHex
+  };
+  const managerContractAddress = api.utils.validatorToAddress(
+    managerContractScript
+  );
+  console.log('managerContractAddress: ', managerContractAddress);
+
+  const userPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
+  const userSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
+
+  const contractUtxos = await api.utxosAt(managerContractAddress);
+  console.log('contractUtxos: ', contractUtxos);
+
+  let mainUtxo = null;
+  let txid = null;
+  let ownerPKH = null;
+  let ownerSH = null;
+  let lendingScore = null;
+  let lendingAmount = null;
+  let deadlinePayback = null;
+  for (let item of contractUtxos) {
+    let txInfo = await API.txsUtxos(item.txHash);
+
+    let contractOutput = null;
+    for (const output of txInfo.outputs) {
+      if (output.address == managerContractAddress) {
+        contractOutput = output;
+        break;
+      }
+    }
+
+    if (contractOutput != null) {
+      console.log('contractOutput: ', contractOutput);
+
+      const previousDatumHash = contractOutput.data_hash;
+
+      if (previousDatumHash != null) {
+        const previousDatum = await API.scriptsDatum(previousDatumHash);
+        console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
+
+        // New datum
+        ownerPKH = previousDatum.json_value.fields[0]["bytes"];
+        ownerSH = previousDatum.json_value.fields[1]["bytes"];
+
+        if (ownerPKH == userPKH && ownerSH == userSH) {
+          lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
+          lendingAmount = BigInt(previousDatum.json_value.fields[4]["int"]);
+          deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
+          mainUtxo = item;
+          break;
+        }
+      }
+    }
+  }
+  if (mainUtxo == null) {
+    throw new Error("Cannot find the main utxo to update user's score");
+  }
+  console.log("Main utxo: ", mainUtxo);
 
   // Collect user's data
 
@@ -121,9 +184,6 @@ const API = new Blockfrost.BlockFrostAPI({
 
   //-------------------------------------------------------------------------
 
-  const userPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
-  const userSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
-
   // Redeemer
   const redeemer = lucid.Data.to(
     new lucid.Constr(0, [newPointsOfFactors, weights])
@@ -155,51 +215,6 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('operatorUtxo: ', operatorUtxo);
 
-  const managerContractScript = {
-    type: "PlutusV2",
-    script: managerContract.cborHex,
-  };
-  const managerContractAddress = api.utils.validatorToAddress(
-    managerContractScript
-  );
-  console.log('managerContractAddress: ', managerContractAddress);
-
-  const contractUtxos = await api.utxosAt(managerContractAddress);
-  console.log('contractUtxos: ', contractUtxos);
-
-  let mainUtxo = null;
-  let txid = null;
-  let unit = null;
-  let ownerPKH = null;
-  let ownerSH = null;
-  let lendingScore = null;
-  let lendingPackage = null;
-  let deadlinePayback = null;
-  for (let item of contractUtxos) {
-    let txInfo = await API.txsUtxos(item.txHash);
-
-    unit = txInfo.outputs[0].amount[1].unit;
-    console.log('unit: ', unit);
-
-    let previousDatumHash = txInfo.outputs[0].data_hash;
-    let previousDatum = await API.scriptsDatum(previousDatumHash);
-
-    // New datum
-    ownerPKH = previousDatum.json_value.fields[0]["bytes"];
-    ownerSH = previousDatum.json_value.fields[1]["bytes"];
-
-    if (ownerPKH == userPKH && ownerSH == userSH) {
-      lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
-      lendingAmount = BigInt(previousDatum.json_value.fields[4]["int"]);
-      deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
-      mainUtxo = item;
-      break;
-    }
-  }
-  if (mainUtxo == null) {
-    throw new Error("Cannot find the main utxo to update user's score");
-  }
-  console.log("Main utxo: ", mainUtxo);
 
   const unixTimeStamp = Math.floor(Date.now());
   console.log("unixTimeStamp: ", unixTimeStamp);
@@ -234,7 +249,7 @@ const API = new Blockfrost.BlockFrostAPI({
   // .readFrom([refManageScript])
   .collectFrom([operatorUtxo, mainUtxo], redeemer)
   .attachSpendingValidator(managerContractScript)
-  .payToContract(managerContractAddress, { inline: datum }, { [unit]: 1n })
+  .payToContract(managerContractAddress, { inline: datum }, { [scoringToken]: 1n })
   .validFrom(validFrom)
   .validTo(validTo)
   .complete();

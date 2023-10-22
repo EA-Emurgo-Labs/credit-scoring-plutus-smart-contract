@@ -61,7 +61,7 @@ cabal run manage <operatorTokenPolicy> <operatorTokenName> <minusPointsIfLatePay
 
 For example:
 ```
-cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 10
+cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4 ScoringToken 751232722c2dd63483f21843abe707d02be3585c972f5058eb75626c 10
 ```
 
 2. MintScoringToken contract
@@ -82,7 +82,7 @@ The result, for example: 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff732
 
 Then, the command to build MintScoringToken, for example:
 ```
-cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000 70bee2fb8d84d953f012e25f6f6a4570e70323173a95c54020832cd0
+cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000
 ```
 
 ## Interacte with contracts by using lucid-cardano

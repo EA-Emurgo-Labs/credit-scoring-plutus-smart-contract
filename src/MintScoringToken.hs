@@ -31,7 +31,7 @@ import qualified Ledger.Typed.Scripts            as Scripts
 import qualified Plutus.Script.Utils.Value       as Value
 import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
-import qualified Plutus.V1.Ledger.Address        as Address
+-- import qualified Plutus.V1.Ledger.Address        as Address
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))

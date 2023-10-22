@@ -87,11 +87,11 @@ PlutusTx.makeIsDataIndexed ''ScoringTokenInfo [('ScoringTokenInfo,0)]
 
 data LendingPackageInfo = LendingPackageInfo 
   {
-    fromPoint        :: Integer,
-    toPoint          :: Integer,
-    amount           :: Integer,
-    interest         :: Integer,
-    deadline         :: PlutusV2.POSIXTime
+    fromPoint :: Integer,
+    toPoint   :: Integer,
+    amount    :: Integer,
+    interest  :: Integer,
+    deadline  :: PlutusV2.POSIXTime
   }
   deriving(Show)
 

@@ -71,8 +71,7 @@ managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
 mintParams :: MintParams
 mintParams = MintParams {
   operatorToken = emurgoToken,
-  minScoreToMintScoringToken = 1000,
-  managerContract = Model.toValidatorHash managerContractAddress
+  minScoreToMintScoringToken = 1000
 }
 
 -- Create the minting policy.
