@@ -44,6 +44,12 @@ const API = new Blockfrost.BlockFrostAPI({
     "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
   };
 
+  // Address contains minting reference script
+  const addressHasMintRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+
+  // Tx id contains minting reference script
+  const txIdHasMintRefScript = "4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff";
+
   //-------------------------------------------------------------------------
 
   const managerContractScript = {
@@ -237,15 +243,13 @@ const API = new Blockfrost.BlockFrostAPI({
     new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
-  // const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
-  // const refUtxos = await api.utxosAt(addressHasRefScripts);
-  // const refMintScript = refUtxos.find(x => 
-  //   x.txHash == "cd739a53f330280c41f974a9c078f347ec59bd9c3362eb084f49d77e7d7b5316"
-  // );
-  // console.log('refMintScript: ', refMintScript);
+  const refUtxos = await api.utxosAt(addressHasMintRefScript);
+  const refMintScript = refUtxos.find(x => 
+    x.txHash == txIdHasMintRefScript
+  );
+  console.log('refMintScript: ', refMintScript);
 
   const tx = await api.newTx()
-  // .readFrom([refMintScript])
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
   .attachMintingPolicy(mintingPolicy)

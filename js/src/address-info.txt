@@ -13,6 +13,6 @@ Index: 2
 Address has two reference scripts:
 addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r
 
-Reference script of Minting contract: 
+Reference script of Minting contract: 4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff
 
-Reference script of Manager contract: 
+Reference script of Manager contract: d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778

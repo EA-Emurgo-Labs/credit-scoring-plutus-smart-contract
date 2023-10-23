@@ -32,7 +32,14 @@ const API = new Blockfrost.BlockFrostAPI({
   // Address to update score
   const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
 
+  // The scoring token
   const scoringToken = "fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a453636f72696e67546f6b656e";
+
+  // Address contains manager reference script
+  const addressHasManageRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+
+  // Tx id contains manager reference script
+  const txIdHasManageRefScript = "d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778";
 
   //-------------------------------------------------------------------------
 
@@ -231,12 +238,11 @@ const API = new Blockfrost.BlockFrostAPI({
     new lucid.Constr(0, [ownerPKH, ownerSH, newBaseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
-  // const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
-  // const refUtxos = await api.utxosAt(addressHasRefScripts);
-  // const refManageScript = refUtxos.find(x => 
-  //   x.txHash == "919ea2ec027d77fd8e1c3a0be6ea339a39014f90d735017bdbf8b78b0b6f6976"
-  // );
-  // console.log('refManageScript: ', refManageScript);
+  const refUtxos = await api.utxosAt(addressHasManageRefScript);
+  const refManageScript = refUtxos.find(x => 
+    x.txHash == txIdHasManageRefScript
+  );
+  console.log('refManageScript: ', refManageScript);
 
   const currentSlot = await api.currentSlot();
   console.log('currentSlot: ', currentSlot);
@@ -248,9 +254,8 @@ const API = new Blockfrost.BlockFrostAPI({
   console.log('validTo: ', validTo);
 
   const tx = await api.newTx()
-  // .readFrom([refManageScript])
+  .readFrom([refManageScript])
   .collectFrom([operatorUtxo, mainUtxo], redeemer)
-  .attachSpendingValidator(managerContractScript)
   .payToContract(managerContractAddress, { inline: datum }, { [scoringToken]: 1n })
   .validFrom(validFrom)
   .validTo(validTo)
