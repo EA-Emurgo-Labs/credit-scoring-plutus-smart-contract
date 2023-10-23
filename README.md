@@ -53,36 +53,26 @@ cabal build
 
 ## Create plutus script file
 
-1. ManageScoringToken contract
+1. MintScoringToken contract
 
 ```
-cabal run manage <operatorTokenPolicy> <operatorTokenName> <minusPointsIfLatePayment>
+cabal run mint <operatorTokenPolicy> <operatorTokenName> <minScoreToMintScoringToken>
+```
+
+For example:
+```
+cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000
+```
+
+2. ManageScoringToken contract
+
+```
+cabal run manage <operatorTokenPolicy> <operatorTokenName> <pubkey hash of operator address> <scoringTokenPolicy> <scoringTokenName> <hash of Lending contract> <biasPoints>
 ```
 
 For example:
 ```
 cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4 ScoringToken 751232722c2dd63483f21843abe707d02be3585c972f5058eb75626c 10
-```
-
-2. MintScoringToken contract
-
-```
-cabal run mint <operatorTokenPolicy> <operatorTokenName> <minScoreToMintScoringToken> <hash of ManageScoringToken contract>
-```
-
-Contract MintScoringToken depends on contract ManageScoringToken because after minting, the Scoring Token must be sent to ManageScoringToken contract only. So we need to run this script to get the hash of ManageScoringToken contract:
-
-```
-cd $HOME/credit-scoring/js
-npm install
-node src/utils/from-script-to-addr.js
-```
-
-The result, for example: 7b31444e6d184f034a934e4221743b8117cb63c74fccc2479aff7322
-
-Then, the command to build MintScoringToken, for example:
-```
-cabal run mint c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1000
 ```
 
 ## Interacte with contracts by using lucid-cardano
@@ -151,10 +141,26 @@ const operatorId = 'c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f124d6f
 // Address to update score
 const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
 
+const scoringToken = "fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a453636f72696e67546f6b656e";
+
 //-------------------------------------------------------------------------
 ```
 
 Run file src/2-update-score.js:
 ```
 node src/2-update-score.js
+```
+
+## Run property-based testing
+
+1. MintScoringToken contract
+
+```
+cabal run test-mint
+```
+
+2. ManageScoringToken contract
+
+```
+cabal run test-manage
 ```
