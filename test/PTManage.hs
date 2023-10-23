@@ -53,23 +53,11 @@ emurgoToken = fakeCoin(fake)
 emurgoValue :: Value
 emurgoValue = fakeValue(fake) 1
 
--- Init for the manage params.
-manageParams :: ManageParams
-manageParams = ManageParams {
-  operatorToken' = emurgoToken,
-  minusPointsIfLatePayment = 10
-}
-
--- Create manager script
-managerContractAddress :: TypedValidator datum redeemer
-managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
-
 -- Init for the mint params.
 mintParams :: MintParams
 mintParams = MintParams {
   operatorToken = emurgoToken,
-  minScoreToMintScoringToken = 1000,
-  managerContract = Model.toValidatorHash managerContractAddress
+  minScore = 1000
 }
 
 -- Create the minting policy.
@@ -79,6 +67,20 @@ mintingPolicy = Mint.policy mintParams
 -- Create the minting contract.
 mintingContract :: TypedPolicy redeemer
 mintingContract = TypedPolicy $ toV2 mintingPolicy
+
+-- Init for the manage params.
+manageParams :: ManageParams
+manageParams = ManageParams {
+  operatorToken' = emurgoToken,
+  operatorAddr = PubKeyHash $ toBuiltinByteString "1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c",
+  scoringToken = assetClass (Mint.tokenSymbol mintParams) nameScoringToken,
+  lendingContract = Model.toValidatorHash mintingContract,
+  biasPoints = 10
+}
+
+-- Create manager script
+managerContractAddress :: TypedValidator datum redeemer
+managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
 
 -- Set up users.
 setupUsers :: Run [PubKeyHash]
@@ -92,16 +94,16 @@ mintScoringTokenTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer ->
 mintScoringTokenTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
   , mintValue mintingContract (pointsOfFactors', weights' ) valScoringToken
-  , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
+  , payToScript managerContractAddress (InlineDatum (ScoringTokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
   , payToKey pkhOperator valOperatorToken
   ]
 
 -- This transaction is to update score.
-updateScoreTx :: UserSpend -> Value -> TxOutRef -> TokenInfo -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
+updateScoreTx :: UserSpend -> Value -> TxOutRef -> ScoringTokenInfo -> [Integer] -> [Integer] -> Integer -> PubKeyHash -> Value -> Tx
 updateScoreTx usp valScoringToken utxoContract oldDatum pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
   , spendScript managerContractAddress utxoContract (pointsOfFactors', weights') oldDatum
-  , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
+  , payToScript managerContractAddress (InlineDatum (ScoringTokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
   , payToKey pkhOperator valOperatorToken
   ]
 
@@ -168,7 +170,7 @@ testValues isSuccess' isOperator = do
 
   -- Get utxo and old datum of ManageScoringToken contract.
   [(txOutRefContract, _)] <- utxoAt managerContractAddress
-  oldDatum <- datumAt @TokenInfo txOutRefContract
+  oldDatum <- datumAt @ScoringTokenInfo txOutRefContract
 
   case oldDatum of
     Just i -> do
@@ -191,16 +193,16 @@ testValues isSuccess' isOperator = do
 
       -- Get new datum
       [(txOutRefContract', _)] <- utxoAt managerContractAddress
-      datum <- datumAt @TokenInfo txOutRefContract'
+      datum <- datumAt @ScoringTokenInfo txOutRefContract'
 
       -- Verify the new base score in new datum.
       if isSuccess' then do
         case datum of
-          Just (TokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 2000
+          Just (ScoringTokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 2000
           Nothing -> return False
       else do
         case datum of
-          Just (TokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 1000
+          Just (ScoringTokenInfo _ _ newBaseScore _ _ _) -> return $ newBaseScore == 1000
           Nothing -> return False
 
     Nothing -> return False

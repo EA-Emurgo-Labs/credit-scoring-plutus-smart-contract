@@ -31,7 +31,6 @@ import qualified Ledger.Typed.Scripts            as Scripts
 import qualified Plutus.Script.Utils.Value       as Value
 import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
-import qualified Plutus.V1.Ledger.Address        as Address
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))
@@ -74,9 +73,6 @@ mkTokenPolicy mParams rParams scriptContext =
     traceIfFalse "[Plutus Error]: minted amount must be one at a time"
       checkMintedAmount &&
 
-    traceIfFalse "[Plutus Error]: the Scoring Token must be sent to ManageScoringToken contract only"
-      (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
-
     traceIfFalse "[Plutus Error]: output datum is not correct"
       (checkOutputDatum $ parseOutputDatum $ getTxOutHasScoringToken)
 
@@ -115,7 +111,7 @@ mkTokenPolicy mParams rParams scriptContext =
     -- Check if the user's base score is good enough to receive the Scoring Token.
     checkMinScoreToMintScoringToken :: Bool
     checkMinScoreToMintScoringToken =
-      getBaseScore (pointsOfFactors rParams) (weights rParams) >= minScoreToMintScoringToken mParams
+      getBaseScore (pointsOfFactors rParams) (weights rParams) >= minScore mParams
 
     {-
     This function will check whether the Scoring Token is in the outputs or not.
@@ -127,8 +123,8 @@ mkTokenPolicy mParams rParams scriptContext =
         Nothing -> traceError "[Plutus Error]: cannot find the Scoring Token in outputs"
         Just i  -> i
 
-    -- Parse output datum to TokenInfo format.
-    parseOutputDatum :: PlutusV2.TxOut -> Maybe TokenInfo
+    -- Parse output datum to Scoring Token's format.
+    parseOutputDatum :: PlutusV2.TxOut -> Maybe ScoringTokenInfo
     parseOutputDatum txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing
       PlutusV2.OutputDatum od      -> PlutusTx.fromBuiltinData $ PlutusV2.getDatum od
@@ -137,9 +133,9 @@ mkTokenPolicy mParams rParams scriptContext =
                                         Nothing -> Nothing
 
     -- Check output datum.
-    checkOutputDatum :: Maybe TokenInfo -> Bool
+    checkOutputDatum :: Maybe ScoringTokenInfo -> Bool
     checkOutputDatum tokenInfo = case tokenInfo of
-      Just (TokenInfo ownerPKH ownerSH baseScore lendingScore lendingPackage deadlinePayback) ->
+      Just (ScoringTokenInfo ownerPKH ownerSH baseScore lendingScore lendingAmount deadlinePayback) ->
         traceIfFalse "[Plutus Error]: ownerPKH must not be empty"
           (PlutusV2.getPubKeyHash ownerPKH /= "") &&
 
@@ -152,8 +148,8 @@ mkTokenPolicy mParams rParams scriptContext =
         traceIfFalse "[Plutus Error]: lendingScore must be 0 in initialize"
           (lendingScore == 0) &&
 
-        traceIfFalse "[Plutus Error]: lendingPackage must be 0 in initialize"
-          (lendingPackage == 0) &&
+        traceIfFalse "[Plutus Error]: lendingAmount must be 0 in initialize"
+          (lendingAmount == 0) &&
 
         traceIfFalse "[Plutus Error]: deadlinePayback must be 0 in initialize"
           (deadlinePayback == 0)

@@ -1,7 +1,7 @@
 import * as lucid from "lucid-cardano";
 import * as Blockfrost from '@blockfrost/blockfrost-js';
 import { collectUserInfo } from "./utils/collect-user-info.js";
-import manageContract from "../../built-contracts/manage-score.json" assert { type: "json" };
+import managerContract from "../../built-contracts/manage-score.json" assert { type: "json" };
 
 const url = 'https://cardano-preprod.blockfrost.io/api/v0';
 const key = 'preprodqAq6ClZlZrpqNJpkdUli9KFNQE3WrtMZ';
@@ -32,10 +32,82 @@ const API = new Blockfrost.BlockFrostAPI({
   // Address to update score
   const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7fp2tn0gunjrlsvg4qgyrq7k2urz276hs6fzj8lcqf3qnek6vg";
 
+  // The scoring token
+  const scoringToken = "fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a453636f72696e67546f6b656e";
+
+  // Address contains manager reference script
+  const addressHasManageRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+
+  // Tx id contains manager reference script
+  const txIdHasManageRefScript = "d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778";
+
+  //-------------------------------------------------------------------------
+
+  const managerContractScript = {
+    type: "PlutusV2",
+    script: managerContract.cborHex
+  };
+  const managerContractAddress = api.utils.validatorToAddress(
+    managerContractScript
+  );
+  console.log('managerContractAddress: ', managerContractAddress);
+
+  const userPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
+  const userSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
+
+  const contractUtxos = await api.utxosAt(managerContractAddress);
+  console.log('contractUtxos: ', contractUtxos);
+
+  let mainUtxo = null;
+  let txid = null;
+  let ownerPKH = null;
+  let ownerSH = null;
+  let lendingScore = null;
+  let lendingAmount = null;
+  let deadlinePayback = null;
+  for (let item of contractUtxos) {
+    let txInfo = await API.txsUtxos(item.txHash);
+
+    let contractOutput = null;
+    for (const output of txInfo.outputs) {
+      if (output.address == managerContractAddress) {
+        contractOutput = output;
+        break;
+      }
+    }
+
+    if (contractOutput != null) {
+      console.log('contractOutput: ', contractOutput);
+
+      const previousDatumHash = contractOutput.data_hash;
+
+      if (previousDatumHash != null) {
+        const previousDatum = await API.scriptsDatum(previousDatumHash);
+        console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
+
+        // New datum
+        ownerPKH = previousDatum.json_value.fields[0]["bytes"];
+        ownerSH = previousDatum.json_value.fields[1]["bytes"];
+
+        if (ownerPKH == userPKH && ownerSH == userSH) {
+          lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
+          lendingAmount = BigInt(previousDatum.json_value.fields[4]["int"]);
+          deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
+          mainUtxo = item;
+          break;
+        }
+      }
+    }
+  }
+  if (mainUtxo == null) {
+    throw new Error("Cannot find the main utxo to update user's score");
+  }
+  console.log("Main utxo: ", mainUtxo);
+
   //-------------------------------------------------------------------------
 
   // Collect user's data
-
+  
   const userData = await collectUserInfo(userAddress);
   console.log('userData: ', userData);
 
@@ -121,9 +193,6 @@ const API = new Blockfrost.BlockFrostAPI({
 
   //-------------------------------------------------------------------------
 
-  const userPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
-  const userSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
-
   // Redeemer
   const redeemer = lucid.Data.to(
     new lucid.Constr(0, [newPointsOfFactors, weights])
@@ -155,69 +224,23 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('operatorUtxo: ', operatorUtxo);
 
-  const manageContractScript = {
-    type: "PlutusV2",
-    script: manageContract.cborHex,
-  };
-  const manageContractAddress = api.utils.validatorToAddress(
-    manageContractScript
-  );
-  console.log('manageContractAddress: ', manageContractAddress);
-
-  const contractUtxos = await api.utxosAt(manageContractAddress);
-  console.log('contractUtxos: ', contractUtxos);
-
-  let mainUtxo = null;
-  let txid = null;
-  let unit = null;
-  let ownerPKH = null;
-  let ownerSH = null;
-  let lendingScore = null;
-  let lendingPackage = null;
-  let deadlinePayback = null;
-  for (let item of contractUtxos) {
-    let txInfo = await API.txsUtxos(item.txHash);
-
-    unit = txInfo.outputs[0].amount[1].unit;
-    console.log('unit: ', unit);
-
-    let previousDatumHash = txInfo.outputs[0].data_hash;
-    let previousDatum = await API.scriptsDatum(previousDatumHash);
-
-    // New datum
-    ownerPKH = previousDatum.json_value.fields[0]["bytes"];
-    ownerSH = previousDatum.json_value.fields[1]["bytes"];
-
-    if (ownerPKH == userPKH && ownerSH == userSH) {
-      lendingScore = BigInt(previousDatum.json_value.fields[3]["int"]);
-      lendingPackage = BigInt(previousDatum.json_value.fields[4]["int"]);
-      deadlinePayback = BigInt(previousDatum.json_value.fields[5]["int"]);
-      mainUtxo = item;
-      break;
-    }
-  }
-  if (mainUtxo == null) {
-    throw new Error("Cannot find the main utxo to update user's score");
-  }
-  console.log("Main utxo: ", mainUtxo);
 
   const unixTimeStamp = Math.floor(Date.now());
   console.log("unixTimeStamp: ", unixTimeStamp);
 
-  if (lendingPackage > 0n && unixTimeStamp > deadlinePayback) {
+  if (lendingAmount > 0n && unixTimeStamp > deadlinePayback) {
     lendingScore = lendingScore - BigInt(MINUS_POINTS_IF_LATE_PAYMENT);
   }
 
-  console.log("New datum: ", ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback);
+  console.log("New datum: ", ownerPKH, ownerSH, newBaseScore, lendingScore, lendingAmount, deadlinePayback);
   
   const datum = lucid.Data.to(
-    new lucid.Constr(0, [ownerPKH, ownerSH, newBaseScore, lendingScore, lendingPackage, deadlinePayback])
+    new lucid.Constr(0, [ownerPKH, ownerSH, newBaseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
-  const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
-  const refUtxos = await api.utxosAt(addressHasRefScripts);
+  const refUtxos = await api.utxosAt(addressHasManageRefScript);
   const refManageScript = refUtxos.find(x => 
-    x.txHash == "919ea2ec027d77fd8e1c3a0be6ea339a39014f90d735017bdbf8b78b0b6f6976"
+    x.txHash == txIdHasManageRefScript
   );
   console.log('refManageScript: ', refManageScript);
 
@@ -233,7 +256,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const tx = await api.newTx()
   .readFrom([refManageScript])
   .collectFrom([operatorUtxo, mainUtxo], redeemer)
-  .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
+  .payToContract(managerContractAddress, { inline: datum }, { [scoringToken]: 1n })
   .validFrom(validFrom)
   .validTo(validTo)
   .complete();

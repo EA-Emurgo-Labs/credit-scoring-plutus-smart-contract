@@ -56,23 +56,11 @@ emurgoToken = fakeCoin(fake)
 emurgoValue :: Value
 emurgoValue = fakeValue(fake) 1
 
--- Init for the manage params.
-manageParams :: ManageParams
-manageParams = ManageParams {
-  operatorToken' = emurgoToken,
-  minusPointsIfLatePayment = 10
-}
-
--- Create manager script
-managerContractAddress :: TypedValidator datum redeemer
-managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
-
 -- Init for the mint params.
 mintParams :: MintParams
 mintParams = MintParams {
   operatorToken = emurgoToken,
-  minScoreToMintScoringToken = 1000,
-  managerContract = Model.toValidatorHash managerContractAddress
+  minScore = 1000
 }
 
 -- Create the minting policy.
@@ -82,6 +70,20 @@ mintingPolicy = Mint.policy mintParams
 -- Create the minting contract.
 mintingContract :: TypedPolicy redeemer
 mintingContract = TypedPolicy $ toV2 mintingPolicy
+
+-- Init for the manage params.
+manageParams :: ManageParams
+manageParams = ManageParams {
+  operatorToken' = emurgoToken,
+  operatorAddr = PubKeyHash $ toBuiltinByteString "1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c",
+  scoringToken = assetClass (Mint.tokenSymbol mintParams) nameScoringToken,
+  lendingContract = Model.toValidatorHash mintingContract,
+  biasPoints = 10
+}
+
+-- Create manager script
+managerContractAddress :: TypedValidator datum redeemer
+managerContractAddress = TypedValidator $ toV2 $ Manager.validator manageParams
 
 -- Set up users.
 setupUsers :: Run [PubKeyHash]
@@ -95,7 +97,7 @@ mintingTx :: UserSpend -> Value -> [Integer] -> [Integer] -> Integer -> PubKeyHa
 mintingTx usp valScoringToken pointsOfFactors' weights' outputBaseScore pkhOperator valOperatorToken = mconcat
   [ userSpend usp
   , mintValue mintingContract (pointsOfFactors', weights' ) valScoringToken
-  , payToScript managerContractAddress (InlineDatum (TokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
+  , payToScript managerContractAddress (InlineDatum (ScoringTokenInfo (PubKeyHash $ toBuiltinByteString "1ff74582a0eabea2d3f8778539fe4fb31c6249cd0bf523ed386e026c") (ScriptHash $ toBuiltinByteString "ebf242a5cde8e4e43fc188a8104183d65706257b578692291ff80262") outputBaseScore 0 0 0)) valScoringToken
   , payToKey pkhOperator valOperatorToken
   ]
 
@@ -189,7 +191,7 @@ testValues shouldMint isOperator mintedAmount pointsOfFactors' weights' outputBa
   -- Verify the Scoring Token has been sent to the ManageScoringToken contract or not.
   if shouldMint then do
     let [(_, oOut)] = utxos
-        [(cs, tn, amount)] = flattenValue $ txOutValue oOut
-    return $ cs == Mint.tokenSymbol mintParams && tn == nameScoringToken && amount == 1
+        [(cs, tn, amt)] = flattenValue $ txOutValue oOut
+    return $ cs == Mint.tokenSymbol mintParams && tn == nameScoringToken && amt == 1
   else
     return $ length utxos == 0

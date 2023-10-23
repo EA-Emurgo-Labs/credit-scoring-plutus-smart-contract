@@ -17,7 +17,8 @@ module GeneralParams
   (
     MintParams(..),
     ManageParams(..),
-    TokenInfo(..)
+    ScoringTokenInfo(..),
+    LendingPackageInfo(..)
   )
 where
 
@@ -30,15 +31,13 @@ import           Prelude                   (Show (..))
 {-
 These parameters will be used in MintScoringToken contract:
 + operatorToken: only operator is able to mint a new Scoring Token.
-+ minScoreToMintScoringToken: there is a threshold (a minimum score) to check if a user is able to receive the
++ minScore: there is a threshold (a minimum score) to check if a user is able to receive the
 Scoring Token or not.
-+ managerContract: after minting, the Scoring Token will be sent to the ManageScoringToken contract only.
 -}
 data MintParams = MintParams
   {
-    operatorToken              :: Value.AssetClass,
-    minScoreToMintScoringToken :: Integer,
-    managerContract            :: PlutusV2.ValidatorHash
+    operatorToken :: Value.AssetClass,
+    minScore      :: Integer
   }
   deriving(Show)
 
@@ -48,12 +47,19 @@ PlutusTx.makeIsDataIndexed ''MintParams [('MintParams,0)]
 {-
 These parameters will be used in ManageScoringToken contract:
 + operatorToken: only operator is able to update new score for the Scoring Token.
-+ minusPointsIfLatePayment: the lending score will be decreased if user has late payment in lending.
++ operatorAddr: this is the operator address that will receive lending fee and old (expired) lending packages.
++ scoringToken: this contract only cares about the scoring token.
++ lendingContract: it is used to check which lending package that user is borrowing from Lending contract.
++ biasPoints: the lending score will be recalculated, plus biasPoints if pay ontime,
+and minus biasPoints if late payment.
 -}
 data ManageParams = ManageParams
   {
-    operatorToken'           :: Value.AssetClass,
-    minusPointsIfLatePayment :: Integer
+    operatorToken'  :: Value.AssetClass,
+    operatorAddr    :: PlutusV2.PubKeyHash,
+    scoringToken    :: Value.AssetClass,
+    lendingContract :: PlutusV2.ValidatorHash,
+    biasPoints      :: Integer
   }
   deriving(Show)
 
@@ -66,19 +72,40 @@ These are information about the Scoring Token:
 + ownerSH: owner's script hash (address = pubkey hash + script hash).
 + baseScore: this score will be re-calculated at the beginning of each month.
 + lendingScore: this score will be updated based on lending history.
-+ lendingPackage: it is used to mark the package that user is borrowing from Lending contract.
++ lendingAmount: it is used to mark the package that user is borrowing from Lending contract.
 + deadlinePayback: it is used to check whether user has a late payment or not.
 -}
-data TokenInfo = TokenInfo 
+data ScoringTokenInfo = ScoringTokenInfo 
   {
     ownerPKH        :: PlutusV2.PubKeyHash,
     ownerSH         :: PlutusV2.ScriptHash,
     baseScore       :: Integer,
     lendingScore    :: Integer,
-    lendingPackage  :: Integer,
+    lendingAmount   :: Integer,
     deadlinePayback :: PlutusV2.POSIXTime
   }
   deriving(Show)
 
-PlutusTx.makeLift ''TokenInfo
-PlutusTx.makeIsDataIndexed ''TokenInfo [('TokenInfo,0)]
+PlutusTx.makeLift ''ScoringTokenInfo
+PlutusTx.makeIsDataIndexed ''ScoringTokenInfo [('ScoringTokenInfo,0)]
+
+{-
+A lending package includes:
++ fromPoint: min point of a lending package.
++ toPoint: max point of a lending package.
++ amount: lending amount.
++ interest: lending fee.
++ deadline: deadline to pay back the lending package.
+-}
+data LendingPackageInfo = LendingPackageInfo 
+  {
+    fromPoint :: Integer,
+    toPoint   :: Integer,
+    amount    :: Integer,
+    interest  :: Integer,
+    deadline  :: PlutusV2.POSIXTime
+  }
+  deriving(Show)
+
+PlutusTx.makeLift ''LendingPackageInfo
+PlutusTx.makeIsDataIndexed ''LendingPackageInfo [('LendingPackageInfo,0)]

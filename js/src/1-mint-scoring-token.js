@@ -2,7 +2,7 @@ import * as lucid from "lucid-cardano";
 import * as Blockfrost from '@blockfrost/blockfrost-js';
 import { collectUserInfo } from "./utils/collect-user-info.js";
 import mintContract from "../../built-contracts/mint-score.json" assert { type: "json" };
-import manageContract from "../../built-contracts/manage-score.json" assert { type: "json" };
+import managerContract from "../../built-contracts/manage-score.json" assert { type: "json" };
 
 const url = 'https://cardano-preprod.blockfrost.io/api/v0';
 const key = 'preprodqAq6ClZlZrpqNJpkdUli9KFNQE3WrtMZ';
@@ -43,6 +43,64 @@ const API = new Blockfrost.BlockFrostAPI({
     "id": "1",
     "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
   };
+
+  // Address contains minting reference script
+  const addressHasMintRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
+
+  // Tx id contains minting reference script
+  const txIdHasMintRefScript = "4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff";
+
+  //-------------------------------------------------------------------------
+
+  const managerContractScript = {
+    type: "PlutusV2",
+    script: managerContract.cborHex,
+  };
+  const managerContractAddress = api.utils.validatorToAddress(
+    managerContractScript
+  );
+  console.log('managerContractAddress: ', managerContractAddress);
+
+  const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
+  console.log('ownerPKH: ', ownerPKH);
+  const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
+  console.log('ownerSH: ', ownerSH);
+
+  const contractUtxos = await api.utxosAt(managerContractAddress);
+
+  let ownerPKHInDatum = "";
+  let ownerSHInDatum = "";
+  for (const utxo of contractUtxos) {
+    const txInfo = await API.txsUtxos(utxo.txHash);
+
+    let contractOutput = null;
+    for (const output of txInfo.outputs) {
+      if (output.address == managerContractAddress) {
+        contractOutput = output;
+        break;
+      }
+    }
+
+    if (contractOutput != null) {
+      console.log('contractOutput: ', contractOutput);
+
+      const previousDatumHash = contractOutput.data_hash;
+
+      if (previousDatumHash != null) {
+        const previousDatum = await API.scriptsDatum(previousDatumHash);
+        console.log('previousDatum: ', JSON.stringify(previousDatum, 0, 4));
+
+        ownerPKHInDatum = previousDatum.json_value.fields[0]["bytes"];
+
+        ownerSHInDatum = previousDatum.json_value.fields[1]["bytes"];
+
+        if (ownerPKHInDatum == ownerPKH && ownerSHInDatum == ownerSH) {
+          console.log("The scoring token has been minted for this user already!");
+          return;
+        }
+      }
+    }
+  }
 
   //-------------------------------------------------------------------------
 
@@ -138,10 +196,8 @@ const API = new Blockfrost.BlockFrostAPI({
     baseScore += pointsOfFactors[i] * weights[i];
   }
   console.log(`baseScore: ${baseScore}`);
-  const ownerPKH = lucid.getAddressDetails(userAddress).paymentCredential?.hash || "";
-  const ownerSH = lucid.getAddressDetails(userAddress).stakeCredential?.hash || "";
   const lendingScore = 0n;
-  const lendingPackage = 0n;
+  const lendingAmount = 0n;
   const deadlinePayback = 0n;
 
   const wallet = await api.selectWalletFromSeed(
@@ -184,31 +240,21 @@ const API = new Blockfrost.BlockFrostAPI({
   metadataToken[policyId] = infoObject;
   
   const datum = lucid.Data.to(
-    new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingPackage, deadlinePayback])
+    new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
   );
 
-  const manageContractScript = {
-    type: "PlutusV2",
-    script: manageContract.cborHex,
-  };
-  const manageContractAddress = api.utils.validatorToAddress(
-    manageContractScript
-  );
-  console.log('manageContractAddress: ', manageContractAddress);
-
-  const addressHasRefScripts = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
-  const refUtxos = await api.utxosAt(addressHasRefScripts);
+  const refUtxos = await api.utxosAt(addressHasMintRefScript);
   const refMintScript = refUtxos.find(x => 
-    x.txHash == "cd739a53f330280c41f974a9c078f347ec59bd9c3362eb084f49d77e7d7b5316"
+    x.txHash == txIdHasMintRefScript
   );
   console.log('refMintScript: ', refMintScript);
 
   const tx = await api.newTx()
-  .readFrom([refMintScript])
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
+  .attachMintingPolicy(mintingPolicy)
   .attachMetadata(label, metadataToken)
-  .payToContract(manageContractAddress, { inline: datum }, { [unit]: 1n })
+  .payToContract(managerContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();
 
   const signedTx = await tx.sign().complete();
