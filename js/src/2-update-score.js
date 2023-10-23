@@ -97,8 +97,10 @@ const API = new Blockfrost.BlockFrostAPI({
   }
   console.log("Main utxo: ", mainUtxo);
 
-  // Collect user's data
+  //-------------------------------------------------------------------------
 
+  // Collect user's data
+  
   const userData = await collectUserInfo(userAddress);
   console.log('userData: ', userData);
 
