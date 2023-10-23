@@ -78,21 +78,26 @@ PlutusTx.makeIsDataIndexed ''RedeemerParams [
 {-# INLINABLE mkValidator #-}
 mkValidator :: ManageParams -> ScoringTokenInfo -> RedeemerParams -> PlutusV2.ScriptContext -> Bool
 mkValidator mParams tokenInfo rParams scriptContext =
+  -- Check if the Scoring Token is in inputs or not.
   traceIfFalse "[Plutus Error]: cannot find the Scoring Token in input"
     hasScoringTokenInInput &&
 
+  -- The Scoring Token must be sent to the Manager contract only.
   traceIfFalse "[Plutus Error]: the Scoring Token in output must be sent to the Manager contract only"
     (Value.assetClassValueOf (PlutusV2.txOutValue $ getContinuingOutput) (scoringToken mParams) == 1) &&
 
   case rParams of
     OperatorRecalculateBaseScore pointsOfFactors weights ->
+      -- If you're not the operator, you cannot do this action.
       traceIfFalse "[Plutus Error]: you're not the operator to update the Scoring Token"
         ownOperatorTokenInInput &&
 
+      -- Update new base score in datum.
       traceIfFalse "[Plutus Error]: output datum (recalculate base score) is not correct"
         (checkOutputDatumRecalculate pointsOfFactors weights outputScoringTokenInfo)
 
     UserUpdateFlagsBorrow ->
+      -- If you're not the Scoring Token's owner, you cannot do this action.
       traceIfFalse "[Plutus Error]: you're not the Scoring Token's owner"
         (PlutusV2.txSignedBy info (ownerPKH tokenInfo)) &&
 
@@ -114,10 +119,12 @@ mkValidator mParams tokenInfo rParams scriptContext =
       traceIfFalse "[Plutus Error]: lending fee has been sent to operator address must be correct"
         checkLendingFee &&
 
+      -- Update datum (lending amount, deadline to pay back).
       traceIfFalse "[Plutus Error]: output datum (borrow) is not correct"
         (checkOutputDatumBorrow outputScoringTokenInfo)
 
     UserUpdateFlagsPayback ->
+      -- If you're not the Scoring Token's owner, you cannot do this action.
       traceIfFalse "[Plutus Error]: you're not the Scoring Token's owner"
         (PlutusV2.txSignedBy info (ownerPKH tokenInfo)) &&
 
@@ -129,15 +136,16 @@ mkValidator mParams tokenInfo rParams scriptContext =
       traceIfFalse "[Plutus Error]: value has been paid back to operator must be correct"
         checkAmountPaybackToOperator &&
 
+      -- Update datum (reset lending amount and deadline to 0).
       traceIfFalse "[Plutus Error]: output datum (payback) is not correct"
         (checkOutputDatumPayback outputScoringTokenInfo)
     
   where
-    -- Get all info about the transaction
+    -- Get all info about the transaction.
     info :: PlutusV2.TxInfo
     info = PlutusV2.scriptContextTxInfo scriptContext
 
-    -- Get the valid time range of this transaction
+    -- Get the valid time range of this transaction.
     range :: PlutusV2.POSIXTimeRange
     range = PlutusV2.txInfoValidRange info
 
@@ -145,11 +153,11 @@ mkValidator mParams tokenInfo rParams scriptContext =
     allTxIn :: [PlutusV2.TxInInfo]
     allTxIn = PlutusV2.txInfoInputs info
 
-    -- Get all outputs
+    -- Get all outputs.
     allTxOut :: [PlutusV2.TxOut]
     allTxOut = PlutusV2.txInfoOutputs info
 
-    -- Check whether this transaction has the operator token in inputs.
+    -- Check whether this transaction has the Scoring Token in inputs.
     hasScoringTokenInInput :: Bool
     hasScoringTokenInInput =
       case find (
@@ -158,13 +166,14 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> False
         Just _  -> True
 
+    -- Get the continuing output of the Manager contract.
     getContinuingOutput :: PlutusV2.TxOut
     getContinuingOutput =
       case PlutusV2.getContinuingOutputs scriptContext of
         [i] -> i
         _   -> traceError "[Plutus Error]: cannot find the continuing output"
 
-    -- Check whether this transaction has the operator token in inputs.
+    -- Check whether this transaction has the Operator Token in inputs.
     ownOperatorTokenInInput :: Bool
     ownOperatorTokenInInput =
       case find (
@@ -185,7 +194,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> traceError "[Plutus Error]: cannot find the Scoring Token in output"
         Just i  -> i
 
-    -- Parse output datum to the TokenInfo format
+    -- Parse output datum to get the Scoring Token's info.
     parseScoringTokenInfo :: PlutusV2.TxOut -> Maybe ScoringTokenInfo
     parseScoringTokenInfo txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing
@@ -194,12 +203,13 @@ mkValidator mParams tokenInfo rParams scriptContext =
                                         Just od -> (PlutusTx.fromBuiltinData $ PlutusV2.getDatum $ od)
                                         Nothing -> Nothing
     
+    -- Get the Scoring Token's info.
     outputScoringTokenInfo :: ScoringTokenInfo
     outputScoringTokenInfo = case parseScoringTokenInfo $ getTxOutHasScoringToken of
       Nothing -> traceError "[Plutus Error]: cannot find the Scoring Token's info in output"
       Just i  -> i
 
-    -- Check output datum.
+    -- Check output datum (in case recalculate the new base score).
     checkOutputDatumRecalculate :: [Integer] -> [Integer] -> ScoringTokenInfo -> Bool
     checkOutputDatumRecalculate pointsOfFactors weights outputDatum =
       traceIfFalse "[Plutus Error]: ownerPKH must be unchanged"
@@ -226,6 +236,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
           traceIfFalse "[Plutus Error]: lendingScore must be decreased because of late payment"
             (lendingScore outputDatum == (lendingScore tokenInfo) - (biasPoints mParams))
 
+    -- Get the input contains the lending package.
     getTxInHasLendingPackage :: PlutusV2.TxOut
     getTxInHasLendingPackage =
       case find (
@@ -234,6 +245,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> traceError "[Plutus Error]: cannot find the lending package in input"
         Just i  -> PlutusV2.txInInfoResolved i
 
+    -- Parse lending package's info.
     parseLendingPackageInfo :: PlutusV2.TxOut -> Maybe LendingPackageInfo
     parseLendingPackageInfo txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing
@@ -242,6 +254,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
                                         Just od -> (PlutusTx.fromBuiltinData $ PlutusV2.getDatum $ od)
                                         Nothing -> Nothing
 
+    -- Get lending package's info                             
     getLendingPackageInfo :: LendingPackageInfo
     getLendingPackageInfo = case parseLendingPackageInfo $ getTxInHasLendingPackage of
       Nothing -> traceError "[Plutus Error]: cannot find the lending package's info in input"
@@ -268,7 +281,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> False
         Just _  -> True
 
-    -- Check output datum.
+    -- Check output datum (in case borrow).
     checkOutputDatumBorrow :: ScoringTokenInfo -> Bool
     checkOutputDatumBorrow outputDatum =
       traceIfFalse "[Plutus Error]: ownerPKH must be unchanged"
@@ -298,7 +311,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
         Nothing -> False
         Just _  -> True
 
-    -- Check output datum.
+    -- Check output datum (in case pay back).
     checkOutputDatumPayback :: ScoringTokenInfo -> Bool
     checkOutputDatumPayback outputDatum =
       traceIfFalse "[Plutus Error]: ownerPKH must be unchanged"

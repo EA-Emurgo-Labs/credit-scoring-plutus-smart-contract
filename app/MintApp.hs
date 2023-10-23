@@ -28,8 +28,7 @@ import           Utility
 
 main :: IO ()
 main = do
-  -- Get the info of operator token, min score to mint the Scoring Token
-  -- After minting, the Scoring Token will be sent to the ManageScoringToken contract (manager contract) only.
+  -- Get arguments.
   [operatorTokenPolicy, operatorTokenName, minScore'] <- getArgs
 
   -- Construct params for contract MintScoringToken.

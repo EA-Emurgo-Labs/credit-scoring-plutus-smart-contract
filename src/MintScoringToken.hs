@@ -31,7 +31,6 @@ import qualified Ledger.Typed.Scripts            as Scripts
 import qualified Plutus.Script.Utils.Value       as Value
 import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
--- import qualified Plutus.V1.Ledger.Address        as Address
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
 import           Prelude                         (Show(..))
@@ -73,9 +72,6 @@ mkTokenPolicy mParams rParams scriptContext =
 
     traceIfFalse "[Plutus Error]: minted amount must be one at a time"
       checkMintedAmount &&
-
-    -- traceIfFalse "[Plutus Error]: the Scoring Token must be sent to manager contract only"
-    --   (PlutusV2.txOutAddress getTxOutHasScoringToken == (Address.scriptHashAddress (managerContract mParams))) &&
 
     traceIfFalse "[Plutus Error]: output datum is not correct"
       (checkOutputDatum $ parseOutputDatum $ getTxOutHasScoringToken)
@@ -127,7 +123,7 @@ mkTokenPolicy mParams rParams scriptContext =
         Nothing -> traceError "[Plutus Error]: cannot find the Scoring Token in outputs"
         Just i  -> i
 
-    -- Parse output datum to TokenInfo format.
+    -- Parse output datum to Scoring Token's format.
     parseOutputDatum :: PlutusV2.TxOut -> Maybe ScoringTokenInfo
     parseOutputDatum txout = case PlutusV2.txOutDatum txout of
       PlutusV2.NoOutputDatum       -> Nothing

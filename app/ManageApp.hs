@@ -28,8 +28,7 @@ import           Utility
 
 main :: IO ()
 main = do
-  -- Get the info of operator token, minus points (in case of late payment in lending)
-  -- to manage the Scoring Token.
+  -- Get arguments.
   [operatorTokenPolicy, operatorTokenName, operatorAddr', scoringTokenPolicy, scoringTokenNam, lendingContract', biasPoints'] <- getArgs
 
   -- Construct params for contract ManageScoringToken.
