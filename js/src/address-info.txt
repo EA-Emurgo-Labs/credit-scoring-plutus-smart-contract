@@ -10,9 +10,13 @@ UserB address: addr_test1qr8vlktea6sknauuru4x4fk9z7uh52as4lxtq7fhc9k5kkuvttujnhp
 Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
 Index: 2
 
+Revenue address: addr_test1qq55wtma8puzyd7qgayvup3hkwa0uykpryhlq4ztvx7u5rsa7vtthm0ckftags3482680kep7hkt8c5q2mg8nmc9mk6s3x9de0
+Mnemonic: people retreat property birth interest panic hedgehog install then around hill hard stumble chef auction effort alter sleep sock mango robust melt female caught
+Index: 4
+
 Address has two reference scripts:
 addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r
 
-Reference script of Minting contract: 4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff
+Reference script of Minting contract: 634d26d9ae1fdc1e275ccf56eb85e33349e1d70a27097513bc14d197892f0255
 
-Reference script of Manager contract: d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778
+Reference script of Manager contract: 1e35f10f7ff69219557d3c68e06865548484cd46aa93c3b6d2fd75bfc14d148e

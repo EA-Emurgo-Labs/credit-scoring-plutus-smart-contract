@@ -29,13 +29,21 @@ import           Utility
 main :: IO ()
 main = do
   -- Get arguments.
-  [operatorTokenPolicy, operatorTokenName, operatorAddr', scoringTokenPolicy, scoringTokenNam, lendingContract', biasPoints'] <- getArgs
+  [ operatorTokenPolicy,
+    operatorTokenName,
+    operatorAddr',
+    revenueAddr',
+    scoringTokenPolicy,
+    scoringTokenName,
+    lendingContract',
+    biasPoints'] <- getArgs
 
   -- Construct params for contract ManageScoringToken.
   let manageParams = ManageParams {
     operatorToken' = Value.AssetClass (toCurrencySymbol operatorTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) operatorTokenName),
     operatorAddr = toPubKeyHash operatorAddr',
-    scoringToken = Value.AssetClass (toCurrencySymbol scoringTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) scoringTokenNam),
+    revenueAddr = toPubKeyHash revenueAddr',
+    scoringToken = Value.AssetClass (toCurrencySymbol scoringTokenPolicy, (Value.TokenName . BC.toBuiltin . C.pack) scoringTokenName),
     lendingContract = toValidatorHash lendingContract',
     biasPoints = Haskell.read biasPoints' :: Integer
   }

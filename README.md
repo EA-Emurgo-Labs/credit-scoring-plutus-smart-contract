@@ -82,17 +82,25 @@ Then, get the scoring token's policy:
 node js/src/utils/get-scoring-token-policyid.js
 ```
 
-Result, for example: fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4 
+Result, for example: fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4
 
 2. ManageScoringToken contract
 
 Get hash of operator address
 
 ```
-node js/src/utils/from-addr-to-pkh.js
+node js/src/utils/from-operator-addr-to-pkh.js
 ```
 
 Result, for example: 1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c
+
+Get hash of revenue address
+
+```
+node js/src/utils/from-revenue-addr-to-pkh.js
+```
+
+Result, for example: 29472f7d38782237c04748ce0637b3bafe12c1192ff0544b61bdca0e
 
 Get hash of Lending contract
 
@@ -100,17 +108,17 @@ Get hash of Lending contract
 node js/src/utils/from-script-to-addr.js
 ```
 
-Result, for example: 1864988ebad792eb191a99bd3a4b4ca3dcdb81e9393806db50f07557
+Result, for example: dffaacbd1709e16496e39e1d15d27a6aa10fb5b71c9bb1f9091274b2
 
 Build ManageScoringToken contract
 
 ```
-cabal run manage <operatorTokenPolicy> <operatorTokenName> <pubkey hash of operator address> <scoringTokenPolicy> <scoringTokenName> <hash of Lending contract> <biasPoints>
+cabal run manage <operatorTokenPolicy> <operatorTokenName> <pubkey hash of operator address> <pubkey hash of revenue address> <scoringTokenPolicy> <scoringTokenName> <hash of Lending contract> <biasPoints>
 ```
 
 For example:
 ```
-cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4 ScoringToken 1864988ebad792eb191a99bd3a4b4ca3dcdb81e9393806db50f07557 10
+cabal run manage c7e02489157f1e9f56daed93de0a2c9b5ab8cabf700cd6e14f7a5f12 MoonstakeTestnet1 1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c 29472f7d38782237c04748ce0637b3bafe12c1192ff0544b61bdca0e fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4 ScoringToken dffaacbd1709e16496e39e1d15d27a6aa10fb5b71c9bb1f9091274b2 10
 ```
 
 ## Interacte with contracts by using lucid-cardano
@@ -126,7 +134,7 @@ cd $HOME/credit-scoring/js
 node src/utils/create-mint-ref-script.js
 ```
 
-Result, for example: 4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff
+Result, for example: 634d26d9ae1fdc1e275ccf56eb85e33349e1d70a27097513bc14d197892f0255
 
 2. Create reference script for ManageScoringToken contract
 
@@ -134,7 +142,7 @@ Result, for example: 4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172
 node src/utils/create-manage-ref-script.js
 ```
 
-Result, for example: d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778
+Result, for example: 1e35f10f7ff69219557d3c68e06865548484cd46aa93c3b6d2fd75bfc14d148e
 
 3. The operator mint a new Scoring Token for user
 
@@ -159,26 +167,18 @@ const userAddress = "addr_test1qq0lw3vz5r4tagknlpmc2w07f7e3ccjfe59l2gld8phqym8t7
 // Token's name
 const tokenName = "ScoringToken";
 
-// Token's info
-const information = {
-  "description": "This is a Scoring Token of Emurgo Labs",
-  "name": tokenName,
-  "id": "1",
-  "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
-};
-
 // Address contains minting reference script
 const addressHasMintRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r" ;
 
 // Tx id contains minting reference script
-const txIdHasMintRefScript = "4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff";
+const txIdHasMintRefScript = "634d26d9ae1fdc1e275ccf56eb85e33349e1d70a27097513bc14d197892f0255";
 
 //-------------------------------------------------------------------------
 ```
 
-Run file src/1-mint-scoring-nft.js:
+Run file src/1-mint-scoring-token.js:
 ```
-node src/1-mint-scoring-nft.js
+node src/1-mint-scoring-token.js
 ```
 
 4. The operator update new base score for each Scoring Token at the beginning of each month
@@ -208,7 +208,7 @@ const scoringToken = "fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a453
 const addressHasManageRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
 
 // Tx id contains manager reference script
-const txIdHasManageRefScript = "d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778";
+const txIdHasManageRefScript = "1e35f10f7ff69219557d3c68e06865548484cd46aa93c3b6d2fd75bfc14d148e";
 
 //-------------------------------------------------------------------------
 ```

@@ -47,7 +47,8 @@ PlutusTx.makeIsDataIndexed ''MintParams [('MintParams,0)]
 {-
 These parameters will be used in ManageScoringToken contract:
 + operatorToken: only operator is able to update new score for the Scoring Token.
-+ operatorAddr: this is the operator address that will receive lending fee and old (expired) lending packages.
++ operatorAddr: this is the operator address that will create new and claim old (expired)lending packages.
++ revenueAddr: this is the revenue address that will receive the lending fee.
 + scoringToken: this contract only cares about the scoring token.
 + lendingContract: it is used to check which lending package that user is borrowing from Lending contract.
 + biasPoints: the lending score will be recalculated, plus biasPoints if pay ontime,
@@ -57,6 +58,7 @@ data ManageParams = ManageParams
   {
     operatorToken'  :: Value.AssetClass,
     operatorAddr    :: PlutusV2.PubKeyHash,
+    revenueAddr     :: PlutusV2.PubKeyHash,
     scoringToken    :: Value.AssetClass,
     lendingContract :: PlutusV2.ValidatorHash,
     biasPoints      :: Integer
@@ -91,19 +93,17 @@ PlutusTx.makeIsDataIndexed ''ScoringTokenInfo [('ScoringTokenInfo,0)]
 
 {-
 A lending package includes:
-+ fromPoint: min point of a lending package.
-+ toPoint: max point of a lending package.
++ minPoint: user can borrow this package if their score is greater than or equal the minPoint.
 + amount: lending amount.
 + interest: lending fee.
 + deadline: deadline to pay back the lending package.
 -}
 data LendingPackageInfo = LendingPackageInfo 
   {
-    fromPoint :: Integer,
-    toPoint   :: Integer,
-    amount    :: Integer,
-    interest  :: Integer,
-    deadline  :: PlutusV2.POSIXTime
+    minPoint :: Integer,
+    amount   :: Integer,
+    interest :: Integer,
+    deadline :: PlutusV2.POSIXTime
   }
   deriving(Show)
 

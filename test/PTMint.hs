@@ -76,6 +76,7 @@ manageParams :: ManageParams
 manageParams = ManageParams {
   operatorToken' = emurgoToken,
   operatorAddr = PubKeyHash $ toBuiltinByteString "1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c",
+  revenueAddr = PubKeyHash $ toBuiltinByteString "1f09ff804264f4071b5dc9d623f3e68c41431a48ce6a5fa58e3af97c",
   scoringToken = assetClass (Mint.tokenSymbol mintParams) nameScoringToken,
   lendingContract = Model.toValidatorHash mintingContract,
   biasPoints = 10

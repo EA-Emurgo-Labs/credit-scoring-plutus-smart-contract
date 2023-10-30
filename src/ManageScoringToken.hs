@@ -108,15 +108,15 @@ mkValidator mParams tokenInfo rParams scriptContext =
       -- Check if the user's score is suitable with the lending package or not.
       traceIfFalse "[Plutus Error]: your score is not good enough to borrow this package"
         (
-          (baseScore tokenInfo) + (lendingScore tokenInfo) >= (fromPoint getLendingPackageInfo)
+          (baseScore tokenInfo) + (lendingScore tokenInfo) >= (minPoint getLendingPackageInfo)
         ) &&
 
       -- The value has been sent to user address must be correct.
       traceIfFalse "[Plutus Error]: value has been sent to user address must be correct"
         checkAmountSentToUser &&
 
-      -- The lending fee (revenue) has been sent to the operator address must be correct.
-      traceIfFalse "[Plutus Error]: lending fee has been sent to operator address must be correct"
+      -- The lending fee (revenue) has been sent to the revenue address must be correct.
+      traceIfFalse "[Plutus Error]: lending fee has been sent to the revenue address must be correct"
         checkLendingFee &&
 
       -- Update datum (lending amount, deadline to pay back).
@@ -132,8 +132,8 @@ mkValidator mParams tokenInfo rParams scriptContext =
       traceIfFalse "[Plutus Error]: you did not borrow any package before"
         (lendingAmount tokenInfo /= 0) &&
 
-      -- Pay back the money to operator address.
-      traceIfFalse "[Plutus Error]: value has been paid back to operator must be correct"
+      -- Pay back the money to the operator address.
+      traceIfFalse "[Plutus Error]: value has been paid back to the operator address must be correct"
         checkAmountPaybackToOperator &&
 
       -- Update datum (reset lending amount and deadline to 0).
@@ -277,7 +277,7 @@ mkValidator mParams tokenInfo rParams scriptContext =
       case find (
         \x -> Value.valueOf x Value.adaSymbol Value.adaToken ==
                 Builtins.divideInteger ((amount getLendingPackageInfo) * 1_000_000 * (interest getLendingPackageInfo)) 100  
-      ) (PlutusV2.pubKeyOutputsAt (operatorAddr mParams) info) of
+      ) (PlutusV2.pubKeyOutputsAt (revenueAddr mParams) info) of
         Nothing -> False
         Just _  -> True
 
