@@ -39,7 +39,7 @@ const API = new Blockfrost.BlockFrostAPI({
   const addressHasManageRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
 
   // Tx id contains manager reference script
-  const txIdHasManageRefScript = "d66b92c452b1f896aa0f7cf636cabd0c0549c9904aeb1fc48a60c36561701778";
+  const txIdHasManageRefScript = "1e35f10f7ff69219557d3c68e06865548484cd46aa93c3b6d2fd75bfc14d148e";
 
   //-------------------------------------------------------------------------
 
@@ -244,21 +244,10 @@ const API = new Blockfrost.BlockFrostAPI({
   );
   console.log('refManageScript: ', refManageScript);
 
-  const currentSlot = await api.currentSlot();
-  console.log('currentSlot: ', currentSlot);
-
-  const validFrom = await lucid.slotToBeginUnixTime(currentSlot - 100, lucid.SLOT_CONFIG_NETWORK.Preprod);
-  console.log('validFrom: ', validFrom);
-
-  const validTo = await lucid.slotToBeginUnixTime(currentSlot + 100, lucid.SLOT_CONFIG_NETWORK.Preprod);
-  console.log('validTo: ', validTo);
-
   const tx = await api.newTx()
   .readFrom([refManageScript])
   .collectFrom([operatorUtxo, mainUtxo], redeemer)
   .payToContract(managerContractAddress, { inline: datum }, { [scoringToken]: 1n })
-  .validFrom(validFrom)
-  .validTo(validTo)
   .complete();
 
   const signedTx = await tx.sign().complete();

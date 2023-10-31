@@ -36,19 +36,11 @@ const API = new Blockfrost.BlockFrostAPI({
   // Token's name
   const tokenName = "ScoringToken";
 
-  // Token's info
-  const information = {
-    "description": "This is a Scoring Token of Emurgo Labs",
-    "name": tokenName,
-    "id": "1",
-    "image": "ipfs://QmZKhZQr9RDMtZqEbkXCSPWCyKxrs9S5bFTNjaB4TPHHQw"
-  };
-
   // Address contains minting reference script
   const addressHasMintRefScript = "addr_test1qzqcdfglhu5dj5kr5lzndv8523m9rw52sjnyqrrdskdss884fc2ygj44zg7wgyypety42mps7rm0ry8n036upzg7yn3s203m2r";
 
   // Tx id contains minting reference script
-  const txIdHasMintRefScript = "4c95bf79ea90c3a6c7b97c31d835688b88e0a13a881dcc0d49f71dd2172f62ff";
+  const txIdHasMintRefScript = "634d26d9ae1fdc1e275ccf56eb85e33349e1d70a27097513bc14d197892f0255";
 
   //-------------------------------------------------------------------------
 
@@ -232,12 +224,6 @@ const API = new Blockfrost.BlockFrostAPI({
   );
 
   const unit = policyId + lucid.fromText(tokenName);
-
-  const infoObject = {};
-  infoObject[tokenName] = information;
-  const label = "721";
-  const metadataToken = {};
-  metadataToken[policyId] = infoObject;
   
   const datum = lucid.Data.to(
     new lucid.Constr(0, [ownerPKH, ownerSH, baseScore, lendingScore, lendingAmount, deadlinePayback])
@@ -253,7 +239,6 @@ const API = new Blockfrost.BlockFrostAPI({
   .collectFrom([operatorUtxo])
   .mintAssets({ [unit]: 1n }, redeemer)
   .attachMintingPolicy(mintingPolicy)
-  .attachMetadata(label, metadataToken)
   .payToContract(managerContractAddress, { inline: datum }, { [unit]: 1n })
   .complete();
 
