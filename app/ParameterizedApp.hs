@@ -7,12 +7,12 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 
--- import MintScoringToken
+import MintScoringToken
 import ManageScoringToken
 import Prelude             (IO)
 
 -- This is the main function for parameterized contracts
 main :: IO ()
 main = do
-  -- MintScoringToken.saveMintCode
+  MintScoringToken.saveMintCode
   ManageScoringToken.saveManageCode

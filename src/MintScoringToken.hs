@@ -18,12 +18,15 @@ module MintScoringToken
   (
     buildMintingContract,
     policy,
+    saveMintCode,
     tokenSymbol
   )
 where
 
 import           Cardano.Api.Shelley             (PlutusScript (..),
-                                                  PlutusScriptV2)
+                                                 PlutusScriptV2,
+                                                 displayError,
+                                                 writeFileTextEnvelope)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy            as LBS
 import qualified Data.ByteString.Short           as SBS
@@ -33,7 +36,7 @@ import qualified Plutus.V2.Ledger.Api            as PlutusV2
 import qualified Plutus.V2.Ledger.Contexts       as PlutusV2
 import qualified PlutusTx
 import           PlutusTx.Prelude                as P hiding ((.))
-import           Prelude                         (Show(..))
+import           Prelude                         (FilePath, IO, putStrLn, print, Show(..), (.))
 import           Plutus.Script.Utils.V2.Scripts  (scriptCurrencySymbol)
 import           GeneralParams
 import           Utility
@@ -175,3 +178,62 @@ scriptSBS params = SBS.toShort $ LBS.toStrict $ serialise $ script params
 
 buildMintingContract :: MintParams -> PlutusScript PlutusScriptV2
 buildMintingContract params = PlutusScriptSerialised $ scriptSBS params
+
+---------------------------------------------------------------------------------------------------------------
+------------------------------------------------- HELPER FUNCTIONS --------------------------------------------
+-- This is another version for manager contract, it uses dynamic params to build the parameterized contract
+
+{-# INLINABLE wrapValidator #-}
+wrapValidator :: (RedeemerParams -> PlutusV2.ScriptContext -> Bool) -- ^
+  -> (BuiltinData -> BuiltinData -> ())
+wrapValidator f a ctx =
+  check $
+  f (PlutusTx.unsafeFromBuiltinData a)
+    (PlutusTx.unsafeFromBuiltinData ctx)
+
+{-# INLINABLE mkWrappedValidator #-}
+mkWrappedValidator :: BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkWrappedValidator oSymbol oName mScore = wrapValidator $ mkTokenPolicy appParams
+  where
+    oSymbol' :: PlutusV2.CurrencySymbol
+    oSymbol' = PlutusTx.unsafeFromBuiltinData oSymbol
+
+    oName' :: PlutusV2.TokenName
+    oName' = PlutusTx.unsafeFromBuiltinData oName
+
+    mScore' :: Integer
+    mScore' = PlutusTx.unsafeFromBuiltinData mScore
+
+    appParams :: MintParams
+    appParams = MintParams {
+      operatorToken = Value.AssetClass (oSymbol', oName'),
+      minScore      = mScore'
+    }
+
+validatorCode :: PlutusTx.CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ())
+validatorCode = $$(PlutusTx.compile [|| mkWrappedValidator ||])
+
+serializableToScript :: Serialise a => a -> PlutusScript PlutusScriptV2
+serializableToScript =
+  PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise
+
+-- Serialize compiled code
+codeToScript :: PlutusTx.CompiledCode a -> PlutusScript PlutusScriptV2
+codeToScript = serializableToScript . PlutusV2.fromCompiledCode
+
+-- Create file with Plutus script
+writeScriptToFile :: FilePath -> PlutusScript PlutusScriptV2 -> IO ()
+writeScriptToFile filePath plutusScript =
+  writeFileTextEnvelope filePath Nothing plutusScript >>= \case
+    Left err -> print $ displayError err
+    Right () -> putStrLn $ "Serialized plutus script to: " ++ filePath
+
+-- Create file with compiled code
+writeCodeToFile :: FilePath -> PlutusTx.CompiledCode a -> IO ()
+writeCodeToFile filePath = writeScriptToFile filePath . codeToScript
+
+saveMintCode :: IO ()
+saveMintCode =
+  writeCodeToFile
+    "./built-contracts/mint-score-parameterized.json"
+    validatorCode
