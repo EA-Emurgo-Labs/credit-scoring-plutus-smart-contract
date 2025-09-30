@@ -19,12 +19,15 @@ module ManageScoringToken
   (
     buildManagerContract,
     validator,
+    saveManageCode,
     RedeemerParams(..)
   )
 where
 
 import           Cardano.Api.Shelley                  (PlutusScript (..),
-                                                       PlutusScriptV2)
+                                                       PlutusScriptV2,
+                                                       displayError,
+                                                       writeFileTextEnvelope)
 import           Codec.Serialise
 import qualified Data.ByteString.Lazy                 as LBS
 import qualified Data.ByteString.Short                as SBS
@@ -40,7 +43,7 @@ import qualified PlutusTx.Builtins                    as Builtins
 import qualified PlutusTx
 import           PlutusTx.Prelude                     as P hiding (Semigroup (..),
                                                                    unless, (.))
-import           Prelude                              (Show (..), (.))
+import           Prelude                              (FilePath, IO, putStrLn, print, Show (..), (.))
 import           GeneralParams
 import           Utility
 
@@ -362,3 +365,84 @@ scriptSBS = SBS.toShort . LBS.toStrict . serialise . script
 
 buildManagerContract :: ManageParams -> PlutusScript PlutusScriptV2
 buildManagerContract = PlutusScriptSerialised . scriptSBS
+
+---------------------------------------------------------------------------------------------------------------
+------------------------------------------------- HELPER FUNCTIONS --------------------------------------------
+-- This is another version for manager contract, it uses dynamic params to build the parameterized contract
+
+{-# INLINABLE wrapValidator #-}
+wrapValidator ::
+     (PlutusTx.UnsafeFromData a)
+  => (a -> RedeemerParams -> PlutusV2.ScriptContext -> Bool) -- ^
+  -> (BuiltinData -> BuiltinData -> BuiltinData -> ())
+wrapValidator f a b ctx =
+  check $
+  f (PlutusTx.unsafeFromBuiltinData a)
+    (PlutusTx.unsafeFromBuiltinData b)
+    (PlutusTx.unsafeFromBuiltinData ctx)
+
+{-# INLINABLE mkWrappedValidator #-}
+mkWrappedValidator :: BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ()
+mkWrappedValidator oSymbol oName oAddr rAddr sSymbol sName lContract bPoints = wrapValidator $ mkValidator appParams
+  where
+    oSymbol' :: PlutusV2.CurrencySymbol
+    oSymbol' = PlutusTx.unsafeFromBuiltinData oSymbol
+
+    oName' :: PlutusV2.TokenName
+    oName' = PlutusTx.unsafeFromBuiltinData oName
+
+    oAddr' :: PlutusV2.PubKeyHash
+    oAddr' = PlutusTx.unsafeFromBuiltinData oAddr
+
+    rAddr' :: PlutusV2.PubKeyHash
+    rAddr' = PlutusTx.unsafeFromBuiltinData rAddr
+
+    sSymbol' :: PlutusV2.CurrencySymbol
+    sSymbol' = PlutusTx.unsafeFromBuiltinData sSymbol
+
+    sName' :: PlutusV2.TokenName
+    sName' = PlutusTx.unsafeFromBuiltinData sName
+
+    lContract' :: PlutusV2.ValidatorHash
+    lContract' = PlutusTx.unsafeFromBuiltinData lContract
+
+    bPoints' :: Integer
+    bPoints' = PlutusTx.unsafeFromBuiltinData bPoints
+
+    appParams :: ManageParams
+    appParams = ManageParams {
+      operatorToken'  = Value.AssetClass (oSymbol', oName'),
+      operatorAddr    = oAddr',
+      revenueAddr     = rAddr',
+      scoringToken    = Value.AssetClass (sSymbol', sName'),
+      lendingContract = lContract',
+      biasPoints      = bPoints'
+    }
+
+validatorCode :: PlutusTx.CompiledCode (BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> BuiltinData -> ())
+validatorCode = $$(PlutusTx.compile [|| mkWrappedValidator ||])
+
+serializableToScript :: Serialise a => a -> PlutusScript PlutusScriptV2
+serializableToScript =
+  PlutusScriptSerialised . SBS.toShort . LBS.toStrict . serialise
+
+-- Serialize compiled code
+codeToScript :: PlutusTx.CompiledCode a -> PlutusScript PlutusScriptV2
+codeToScript = serializableToScript . PlutusV2.fromCompiledCode
+
+-- Create file with Plutus script
+writeScriptToFile :: FilePath -> PlutusScript PlutusScriptV2 -> IO ()
+writeScriptToFile filePath plutusScript =
+  writeFileTextEnvelope filePath Nothing plutusScript >>= \case
+    Left err -> print $ displayError err
+    Right () -> putStrLn $ "Serialized plutus script to: " ++ filePath
+
+-- Create file with compiled code
+writeCodeToFile :: FilePath -> PlutusTx.CompiledCode a -> IO ()
+writeCodeToFile filePath = writeScriptToFile filePath . codeToScript
+
+saveManageCode :: IO ()
+saveManageCode =
+  writeCodeToFile
+    "./built-contracts/manage-score-parameterized.json"
+    validatorCode
