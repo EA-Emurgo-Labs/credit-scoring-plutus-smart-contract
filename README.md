@@ -74,7 +74,7 @@ Go to contract folder:
 cd $HOME/credit-scoring-plutus-smart-contract
 ```
 
-1. MintScoringToken contract
+### 1. MintScoringToken contract
 
 ```
 cabal run mint <operatorTokenPolicy> <operatorTokenName> <minScoreToMintScoringToken>
@@ -94,7 +94,7 @@ node js/src/utils/get-scoring-token-policyid.js
 
 Result, for example: fa300e31f9048daa62d428b2529092efa3dc1bbd03ac1a946fa463a4
 
-2. ManageScoringToken contract
+### 2. ManageScoringToken contract
 
 Get hash of operator address
 
@@ -140,7 +140,7 @@ Go to js folder:
 cd $HOME/credit-scoring-plutus-smart-contract/js
 ```
 
-1. Create reference script for MintScoringToken contract
+### 1. Create reference script for MintScoringToken contract
 
 ```
 node src/utils/create-mint-ref-script.js
@@ -148,7 +148,7 @@ node src/utils/create-mint-ref-script.js
 
 Result, for example: 634d26d9ae1fdc1e275ccf56eb85e33349e1d70a27097513bc14d197892f0255
 
-2. Create reference script for ManageScoringToken contract
+### 2. Create reference script for ManageScoringToken contract
 
 ```
 node src/utils/create-manage-ref-script.js
@@ -156,7 +156,7 @@ node src/utils/create-manage-ref-script.js
 
 Result, for example: 1e35f10f7ff69219557d3c68e06865548484cd46aa93c3b6d2fd75bfc14d148e
 
-3. The operator mint a new Scoring Token for user
+### 3. The operator mint a new Scoring Token for user
 
 Edit file src/1-mint-scoring-token.js with some fields:
 
@@ -194,7 +194,7 @@ Run file src/1-mint-scoring-token.js:
 node src/1-mint-scoring-token.js
 ```
 
-4. The operator update new base score for each Scoring Token at the beginning of each month
+### 4. The operator update new base score for each Scoring Token at the beginning of each month
 
 Edit file src/2-update-score.js with some fields:
 
@@ -234,13 +234,13 @@ node src/2-update-score.js
 
 ## Run property-based testing
 
-1. MintScoringToken contract
+### 1. MintScoringToken contract
 
 ```
 cabal run test-mint
 ```
 
-2. ManageScoringToken contract
+### 2. ManageScoringToken contract
 
 ```
 cabal run test-manage
